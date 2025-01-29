@@ -97,7 +97,32 @@ elif st.session_state.page_selection == 'jeu_de_donnees':
     if st.checkbox("Afficher les statistiques descriptives"):  
         st.write(df.describe())  
 
-elif st.session_state.page_selection == 'analyse_exploratoire':  
+elif st.session_state.page_selection == 'analyse_exploratoire': 
+    import pandas as pd  
+    import seaborn as sns  
+    import matplotlib.pyplot as plt   
+    # Page Analyse Exploratoire  
+    st.title("🔍nettoyage_donnees ") 
+     # Traitement des variables catégorielles  
+    data = pd.get_dummies(df, drop_first=True)  
+      
+    # Remplacer 'unknown' par le mode de chaque colonne  
+    for column in df.columns:  
+        if df[column].dtype == 'object':  # Vérifie si la colonne est de type object (catégorielle)  
+            mode_value = df[column].mode()[0]  
+            df[column] = df[column].replace('unknown', mode_value)  
+
+    # Afficher le résultat des tables croisées pour chaque colonne d'intérêt  
+    for column in df.columns:  
+        if df[column].dtype == 'object' and column != 'y':  # Ignore la colonne cible 'y'   
+            print(f"Table croisée pour {column}:")  
+            print(df.groupby(['y', column])[column].size().unstack(level=0))  
+
+            # Afficher le countplot  
+            plt.figure(figsize=(10, 6))  
+            sns.countplot(x=df["y"], hue=df[column])  
+            plt.title(f'Countplot pour {column}')  
+            plt.show()
     # Page Analyse Exploratoire  
     st.title("🔍 Analyse Exploratoire")  
     
@@ -131,30 +156,7 @@ elif st.session_state.page_selection == 'analyse_exploratoire':
     st.subheader("Relation entre l'âge et le métier")  
     st.altair_chart(age_job_chart, use_container_width=True)      
   
-elif st.session_state.page_selection == 'nettoyage_donnees ':
-     # Page Analyse Exploratoire  
-    st.title("🔍nettoyage_donnees ") 
-     # Traitement des variables catégorielles  
-    data = pd.get_dummies(df, drop_first=True)  
-      
-    # Remplacer 'unknown' par le mode de chaque colonne  
-    for column in df.columns:  
-        if df[column].dtype == 'object':  # Vérifie si la colonne est de type object (catégorielle)  
-            mode_value = df[column].mode()[0]  
-            df[column] = df[column].replace('unknown', mode_value)  
 
-    # Afficher le résultat des tables croisées pour chaque colonne d'intérêt  
-    for column in df.columns:  
-        if df[column].dtype == 'object' and column != 'y':  # Ignore la colonne cible 'y'   
-            print(f"Table croisée pour {column}:")  
-            print(df.groupby(['y', column])[column].size().unstack(level=0))  
-
-            # Afficher le countplot  
-            plt.figure(figsize=(10, 6))  
-            sns.countplot(x=df["y"], hue=df[column])  
-            plt.title(f'Countplot pour {column}')  
-            plt.show()
-   
 elif st.session_state.page_selection == 'apprentissage_automatique':
     from sklearn.model_selection import train_test_split
     from sklearn.ensemble import RandomForestClassifier  
