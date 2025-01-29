@@ -100,8 +100,8 @@ elif st.session_state.page_selection == 'jeu_de_donnees':
         st.write(df.describe())
 
 elif st.session_state.page_selection == 'analyse_exploratoire':
-    import seaborn as sns  # Importation de seaborn
-    import matplotlib.pyplot as plt  # Importation de matplotlib.pyplot
+    #import seaborn as sns  # Importation de seaborn
+    #import matplotlib.pyplot as plt  # Importation de matplotlib.pyplot
     import altair as alt
 
     st.title(" Analyse Exploratoire")
