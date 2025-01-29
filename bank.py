@@ -2,8 +2,8 @@
 import streamlit as st  
 import pandas as pd  
 import altair as alt  
-import seaborn as sns  
-import matplotlib.pyplot as plt  
+#import seaborn as sns  
+#import matplotlib.pyplot as plt  
 
 # Configuration de la page  
 st.set_page_config(  
@@ -119,10 +119,10 @@ elif st.session_state.page_selection == 'analyse_exploratoire':
             print(df.groupby(['y', column])[column].size().unstack(level=0))  
 
             # Afficher le countplot  
-            plt.figure(figsize=(10, 6))  
-            sns.countplot(x=df["y"], hue=df[column])  
-            plt.title(f'Countplot pour {column}')  
-            plt.show()
+           # plt.figure(figsize=(10, 6))  
+            #sns.countplot(x=df["y"], hue=df[column])  
+            #plt.title(f'Countplot pour {column}')  
+            #plt.show()
     # Page Analyse Exploratoire  
     st.title("🔍 Analyse Exploratoire")  
     
