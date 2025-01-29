@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import seaborn as sns
-import matplotlib.pyplot as plt  # Importation de matplotlib.pyplot
+import matplotlib as plt  # Importation de matplotlib
 
 # Configuration de la page
 st.set_page_config(
@@ -101,7 +101,7 @@ elif st.session_state.page_selection == 'jeu_de_donnees':
 
 elif st.session_state.page_selection == 'analyse_exploratoire':
     #import seaborn as sns  # Importation de seaborn
-    #import matplotlib.pyplot as plt  # Importation de matplotlib.pyplot
+    #import matplotlib as plt  # Importation de matplotlib
     #import altair as alt
 
     st.title(" Analyse Exploratoire")
