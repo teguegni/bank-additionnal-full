@@ -136,9 +136,7 @@ elif st.session_state.page_selection == 'nettoyage_donnees ':
     st.title("🔍nettoyage_donnees ") 
      # Traitement des variables catégorielles  
     data = pd.get_dummies(df, drop_first=True)  
-    import pandas as pd  
-    import seaborn as sns  
-    import matplotlib.pyplot as plt    
+      
     # Remplacer 'unknown' par le mode de chaque colonne  
     for column in df.columns:  
         if df[column].dtype == 'object':  # Vérifie si la colonne est de type object (catégorielle)  
