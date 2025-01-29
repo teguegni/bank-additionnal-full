@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-#import seaborn as sns
-#import matplotlib.pyplot as plt  # Importation de matplotlib.pyplot
+import seaborn as sns
+import matplotlib.pyplot as plt  # Importation de matplotlib.pyplot
 
 # Configuration de la page
 st.set_page_config(
