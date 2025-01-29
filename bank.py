@@ -96,67 +96,66 @@ elif st.session_state.page_selection == 'jeu_de_donnees':
     # Afficher les statistiques descriptives  
     if st.checkbox("Afficher les statistiques descriptives"):  
         st.write(df.describe())  
+elif st.session_state.page_selection == 'analyse_exploratoire':
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import altair as alt
+import streamlit as st
 
-elif st.session_state.page_selection == 'analyse_exploratoire': 
-    import pandas as pd  
-    #import seaborn as sns  
-    #import matplotlib.pyplot as plt   
-    # Page Analyse Exploratoire  
-    st.title("🔍nettoyage_donnees ") 
-     # Traitement des variables catégorielles  
-    data = pd.get_dummies(df, drop_first=True)  
-      
-    # Remplacer 'unknown' par le mode de chaque colonne  
-    for column in df.columns:  
-        if df[column].dtype == 'object':  # Vérifie si la colonne est de type object (catégorielle)  
-            mode_value = df[column].mode()[0]  
-            df[column] = df[column].replace('unknown', mode_value)  
+# Chargement des données (à adapter à votre source de données)
+try:
+    df = pd.read_csv("votre_fichier.csv")  # Remplacez par le chemin de votre fichier
+except FileNotFoundError:
+    st.error("Fichier de données non trouvé.")
+    st.stop()  # Arrête l'exécution du script si le fichier n'est pas trouvé
 
-    # Afficher le résultat des tables croisées pour chaque colonne d'intérêt  
-    for column in df.columns:  
-        if df[column].dtype == 'object' and column != 'y':  # Ignore la colonne cible 'y'   
-            print(f"Table croisée pour {column}:")  
-            print(df.groupby(['y', column])[column].size().unstack(level=0))  
+# ... (votre code pour le nettoyage des données)
 
-            # Afficher le countplot  
-            plt.figure(figsize=(10, 6))  
-            sns.countplot(x=df["y"], hue=df[column])  
-            plt.title(f'Countplot pour {column}')  
-            plt.show()
-    # Page Analyse Exploratoire  
-    st.title("🔍 Analyse Exploratoire")  
-    
-    # Vérification des valeurs manquantes  
-    st.subheader("Vérification des valeurs manquantes")  
-    missing_values = df.isnull().sum()  
-    st.write(missing_values[missing_values > 0])  
-    # Visualisation de la relation entre l'âge et le métier  
-      # Convertir 'job' en catégorie pour un meilleur affichage  
-    df['job'] = df['job'].astype('category')  
+elif st.session_state.page_selection == 'analyse_exploratoire':
+    st.title(" Analyse Exploratoire")
 
-    # Créer le graphique d'Altair  
-    age_job_chart = (  
-    alt.Chart(df)  
-    .mark_circle(size=60)  
-    .encode(  
-        x=alt.X('age:Q', title='Âge'),  # Assurez-vous que l'âge est traité comme une mesure  
-        y=alt.Y('job:O', title='Métier', sort=None),  # Utiliser Order pour classer les métiers  
-        color='y:N',  # Une couleur par catégorie 'y'  
-        tooltip=['age:Q', 'job:N', 'y:N']  # Améliorer les info-bulles  
-    )  
-    .properties(  
-        title='Relation entre l\'âge et le métier',  
-        width=600,  
-        height=400  
-        )  
-        .interactive()  
-    )  
+    # Remplacement des valeurs 'unknown' (comme dans votre code)
+    for column in df.columns:
+        if df[column].dtype == 'object':
+            mode_value = df[column].mode()[0]
+            df[column] = df[column].replace('unknown', mode_value)
 
-    # Afficher le graphique dans Streamlit  
-    st.subheader("Relation entre l'âge et le métier")  
-    st.altair_chart(age_job_chart, use_container_width=True)      
-  
+    # Sélection des colonnes catégorielles à analyser (plus efficace)
+    categorical_cols = [col for col in df.columns if df[col].dtype == 'object' and col != 'y']
 
+    # Affichage des tables croisées et graphiques pour les colonnes sélectionnées
+    for column in categorical_cols:
+        st.subheader(f"Table croisée pour {column}")
+        st.write(df.groupby(['y', column])[column].size().unstack(level=0))  # Utilisation de st.write()
+
+        st.subheader(f"Countplot pour {column}")
+        fig, ax = plt.subplots(figsize=(10, 6))  # Création de la figure et des axes
+        sns.countplot(x=df["y"], hue=df[column], ax=ax)  # Utilisation des axes pour le graphique
+        st.pyplot(fig)  # Affichage du graphique dans Streamlit
+
+    # ... (votre code pour la vérification des valeurs manquantes)
+
+    # Graphique Altair
+    st.subheader("Relation entre l'âge et le métier")
+    df['job'] = df['job'].astype('category')  # Conversion de 'job' en catégorie
+    age_job_chart = (
+        alt.Chart(df)
+        .mark_circle(size=60)
+        .encode(
+            x=alt.X('age:Q', title='Âge'),
+            y=alt.Y('job:O', title='Métier', sort=None),
+            color='y:N',
+            tooltip=['age:Q', 'job:N', 'y:N']
+        )
+        .properties(
+            title='Relation entre l\'âge et le métier',
+            width=600,
+            height=400
+        )
+        .interactive()
+    )
+    st.altair_chart(age_job_chart, use_container_width=True)
 elif st.session_state.page_selection == 'apprentissage_automatique':
     from sklearn.model_selection import train_test_split
     from sklearn.ensemble import RandomForestClassifier  
