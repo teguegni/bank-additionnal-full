@@ -7,8 +7,8 @@ import altair as alt
 # Configuration de la page
 st.set_page_config(
     page_title="Classification des Données Bancaires",
-    page_icon="",
-    layout="wide",
+    page_icon="🏦",  
+    layout="wide", 
     initial_sidebar_state="expanded"
 )
 
@@ -25,7 +25,7 @@ def set_page_selection(page):
     st.session_state.page_selection = page
 
 with st.sidebar:
-    st.title(' Classification des Données Bancaires')
+    st.title(' 🏦 Classification des Données Bancaires')
 
     # Navigation par boutons
     st.subheader("Sections")
