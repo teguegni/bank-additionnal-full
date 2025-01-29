@@ -167,3 +167,40 @@ elif st.session_state.page_selection == 'apprentissage_automatique':
 
 elif st.session_state.page_selection == 'prediction':
     # ... (votre code pour la page de prédiction)
+    # Page Prédiction  
+    st.title("🔮 Prédiction")  
+    
+    # Formulaire pour saisir les caractéristiques  
+    age = st.number_input("Âge du client", min_value=18, max_value=120, value=30)  
+    duration = st.number_input("Durée du contact (seconds)", min_value=0, value=60)  
+    campaign = st.number_input("Nombre de contacts lors de la campagne", min_value=1, value=1)  
+    
+    if st.button("Prédire"): 
+        from sklearn.model_selection import train_test_split  
+        from sklearn.preprocessing import StandardScaler  
+        from sklearn.ensemble import RandomForestClassifier
+        import seaborn as sns  
+        import matplotlib.pyplot as plt  
+    try:  
+            # Prétraitement potentiel des données d'entrée et des caractéristiques  
+            # (Assurez-vous que le modèle est déjà formé au préalable et chargé ici)  
+            X = df[['age', 'duration', 'campaign']]  # Ajustez selon vos colonnes de caractéristiques.  
+            y = df['y']  # Cible à prédire  
+            
+            # Splitting and training d'un modèle d'exemple  
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)  
+            model = RandomForestClassifier()  
+            model.fit(X_train, y_train)  
+            
+            prediction = model.predict([[age, duration, campaign]])  
+            subscription_status = "Oui" if prediction[0] == 'yes' else "Non"  
+            st.success(f"Le client va-t-il souscrire au produit ? : **{subscription_status}**") 
+            # Prédictions  
+            y_pred = model.predict(X_test)  
+
+            # Évaluation  
+            print(confusion_matrix(y_test, y_pred))  
+            print(classification_report(y_test, y_pred))
+    except Exception as e:  
+            st.error(f"Une erreur est survenue : {e}")
+
