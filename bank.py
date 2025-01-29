@@ -99,7 +99,7 @@ elif st.session_state.page_selection == 'jeu_de_donnees':
 
 elif st.session_state.page_selection == 'analyse_exploratoire': 
     import pandas as pd  
-    import seaborn as sns  
+    #import seaborn as sns  
     import matplotlib.pyplot as plt   
     # Page Analyse Exploratoire  
     st.title("🔍nettoyage_donnees ") 
