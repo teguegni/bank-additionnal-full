@@ -7,7 +7,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score 
 import base64
+import streamlit as st  
 
+# Initialisation de la clé si elle n'existe pas  
+if 'page_selection' not in st.session_state:  
+    st.session_state.page_selection = 'valeur_par_defaut'  # Remplacez par une valeur par défaut appropriée
 # Configuration de la page avec image de fond
 def set_bg_hack(main_bg):
     main_bg_ext = "png"
