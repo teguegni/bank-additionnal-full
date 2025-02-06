@@ -310,7 +310,7 @@ elif st.session_state.page_selection == 'prediction':
         education_dict[education_freq_encode],  
         month_dict[month_freq_encode],  
         day_freq_encode,  
-        poutcome_dict[poutcome_freq_encode]  
+        poutcome_freq_encode  
     ]  
 
 # Vous pouvez également ajouter un bouton pour soumettre le formulaire  
