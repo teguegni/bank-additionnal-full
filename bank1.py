@@ -284,7 +284,7 @@ elif st.session_state.page_selection == 'prediction':
     # Formulaire pour saisir les caractéristiques  
    # Formulaire de Soumission de Données  
 
-    Veuillez remplir le formulaire ci-dessous avec les informations requises :  
+    # Veuillez remplir le formulaire ci-dessous avec les informations requises :  
 
     1. **Âge** (age)  
    - **Type**: Numérique  
