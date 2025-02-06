@@ -282,37 +282,85 @@ elif st.session_state.page_selection == 'prediction':
     import streamlit as st  
 
     # Formulaire pour saisir les caractéristiques  
-    age = st.number_input("Âge du client", min_value=18, max_value=120, value=30)  
-    duration = st.number_input("Durée du contact (seconds)", min_value=0, value=60)  
-    campaign = st.number_input("Nombre de contacts lors de la campagne", min_value=1, value=1)  
-    pdays = st.number_input("Nombre de jours depuis le dernier contact", min_value=-1, value=-1)  # -1 si jamais contacté  
-    previous = st.number_input("Nombre de contacts avant cette campagne", min_value=0, value=0)  
-    emp_var_rate = st.number_input("Taux de variation de l'emploi (%)", value=0.0)  
-    cons_price_idx = st.number_input("Indice des prix à la consommation", value=93.0)  
-    cons_conf_idx = st.number_input("Indice de confiance des consommateurs", value=-40.0)  
-    euribor3m = st.number_input("Taux Euribor à 3 mois (%)", value=0.0)  
-    nr_employed = st.number_input("Nombre d'employés (calculé)", value=5191)  
+   # Formulaire de Soumission de Données  
 
-   # Préparer les données pour la prédiction  
-    input_data = [  
-        age,  
-        duration,  
-        campaign,  
-        pdays,  
-        previous,  
-        emp_var_rate,  
-        cons_price_idx,  
-        cons_conf_idx,  
-        euribor3m,  
-        nr_employed,  
-        marital_freq_encode,  
-        job_freq_encode,  
-        education_freq_encode,  
-        month_freq_encode,  
-        day_freq_encode,  
-        poutcome_freq_encode  
-    ]  
+    Veuillez remplir le formulaire ci-dessous avec les informations requises :  
 
+    1. **Âge** (age)  
+   - **Type**: Numérique  
+   - **Exemple**: 30  
+
+    2. **Durée** (duration)  
+   - **Type**: Numérique (en secondes)  
+   - **Exemple**: 120  
+
+    3. **Campagne** (campaign)  
+   - **Type**: Numérique  
+   - **Exemple**: 2  
+
+    4. **Pdays** (pdays)  
+   - **Type**: Numérique (jours depuis le dernier contact, -1 si pas de contact)  
+   - **Exemple**: 6  
+
+    5. **Précedent** (previous)  
+   - **Type**: Numérique  
+   - **Exemple**: 1  
+
+    6. **Taux d'Emploi Varié** (emp_var_rate)  
+   - **Type**: Numérique (en pourcentage)  
+   - **Exemple**: -1.8  
+
+    7. **Indice de Prix à la Consommation** (cons_price_idx)  
+   - **Type**: Numérique  
+   - **Exemple**: 92.893  
+
+    8. **Indice de Confiance des Consommateurs** (cons_conf_idx)  
+   - **Type**: Numérique  
+   - **Exemple**: -46.2  
+
+    9. **EURIBOR à 3 mois** (euribor3m)  
+   - **Type**: Numérique (en pourcentage)  
+   - **Exemple**: 1.3  
+
+    10. **Nombre d'Employés** (nr_employed)  
+    - **Type**: Numérique  
+    - **Exemple**: 5191  
+
+    11. **Fréquence de l'État Civil** (marital_freq_encode)  
+    - **Type**: Catégorique (ex: 0 pour célibataire, 1 pour marié, etc.)  
+    - **Exemple**: 1  
+
+    12. **Fréquence de l'Emploi** (job_freq_encode)  
+    - **Type**: Catégorique (ex: 0 pour emploi n°1, 1 pour emploi n°2, etc.)  
+    - **Exemple**: 0  
+
+    13. **Fréquence de l'Éducation** (education_freq_encode)  
+    - **Type**: Catégorique (ex: 0 pour primaire, 1 pour secondaire, etc.)  
+    - **Exemple**: 2  
+
+    14. **Fréquence du Mois** (month_freq_encode)  
+    - **Type**: Catégorique (ex: 0 pour janvier, 1 pour février, etc.)  
+    - **Exemple**: 1  
+
+    15. **Fréquence du Jour** (day_freq_encode)  
+    - **Type**: Catégorique (ex: 0 pour dimanche, 6 pour samedi, etc.)  
+    - **Exemple**: 3  
+
+16. **Fréquence du Résultat Précédent** (poutcome_freq_encode)  
+    - **Type**: Catégorique (ex: 0 pour échec, 1 pour succès, etc.)  
+    - **Exemple**: 0  
+
+    ---  
+
+    ### Soumettre  
+
+    [**Envoyer le Formulaire**]   
+
+    ---  
+
+    Merci de votre participation !
+        
+       
 # Vous pouvez également ajouter un bouton pour soumettre le formulaire  
 if st.button('Soumettre'):  
     # Faire la prédiction  
