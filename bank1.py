@@ -1,12 +1,11 @@
-import streamlit as st
+# importation des bibiotheques
+import numpy as np
 import pandas as pd
-import altair as alt
+import matplotlib as plt
 import seaborn as sns
-import matplotlib.pyplot as plt  # Importation de matplotlib.pyplot
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score 
+import streamlit as st
+import altair as alt 
+
 
 # Configuration de la page
 st.set_page_config(
@@ -108,21 +107,17 @@ elif st.session_state.page_selection == 'jeu_de_donnees':
         st.write(df.describe())
 
 elif st.session_state.page_selection == 'analyse_exploratoire':
-    import seaborn as sns  # Importation de seaborn
-    import matplotlib.pyplot as plt  # Importation de matplotlib.pyplot
-    import altair as alt
-
     st.title(" Analyse Exploratoire")
-
+    #  verifies s'il ya des duplications dans la dataframe et affiche le nombre de duplications
+    duplicates = df.duplicated()
+    duplicates.value_counts()
+    # supprimations des duplications 
+    df.drop_duplicates()
     # Remplacement des valeurs 'unknown'
     for column in df.columns:
         if df[column].dtype == 'object':
             mode_value = df[column].mode()[0]
             df[column] = df[column].replace('unknown', mode_value)
-
-    # Sélection des colonnes catégorielles
-    categorical_cols = [col for col in df.columns if df[col].dtype == 'object' and col != 'y']
-
     # Affichage des tables croisées et graphiques
     for column in categorical_cols:
         st.subheader(f"Table croisée pour {column}")
@@ -160,74 +155,135 @@ elif st.session_state.page_selection == 'analyse_exploratoire':
     st.altair_chart(age_job_chart, use_container_width=True)
 
 elif st.session_state.page_selection == 'apprentissage_automatique':
-    from sklearn.model_selection import train_test_split
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.metrics import classification_report, confusion_matrix
-
-    # ... (votre code pour charger X et y)
-
-    import pandas as pd
-    from sklearn.model_selection import train_test_split
-    from sklearn.ensemble import RandomForestClassifier
-
-    # Charger le DataFrame
-    df = pd.read_csv('bank-additional-full.csv', delimiter=';')
-
+    # selection des colonnes numerique 
+    colonne_numerique = df[['age','duration','campaign','pdays','previous','emp.var.rate','cons.price.idx','cons.conf.idx','euribor3m','nr.employed']]
+    print(colonne_numerique)
+    # Fonction pour détecter et remplacer les valeurs aberrantes avec les Bounds
+    def replace_outliers(df):
+        for col in df.select_dtypes(include=['number']).columns:  # Only process numeric columns
+        Q1 = df[col].quantile(0.25)
+        Q3 = df[col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        df[col] = np.where(df[col] < lower_bound, lower_bound, df[col])
+        df[col] = np.where(df[col] > upper_bound, upper_bound,df[col])
     # Vérifiez que les colonnes nécessaires existent
     print(df.columns)
- # numérisation des valeurs catégorielles 
-    import pandas as pd  
+    replace_outliers(df)
+    sns.boxplot(x='age',data=df)
+    # faire la matrice de correlation
+    sns.heatmap(df.select_dtypes(include=['number']).corr(),annot =True)
+    # encodage categorielle avec plusieurs valeurs differentes pour les features 
+    # grouper les categories 
+    df.groupby('marital').size()
+    # calcul de la frequence par categories
+    fe = df.groupby('marital').size()/len(df)
+    # insertion dans le dataframe
+    df.loc[:,'marital_freq_encode'] = df['marital'].map(fe)
+    df
+    # encodage categorielle avec plusieurs valeurs differentes pour les features 
+    # grouper les categories 
+    df.groupby('job').size()
+    # calcul de la frequence par categories
+    fe = df.groupby('job').size()/len(df)
+    # insertion dans le dataframe
+    df.loc[:,'job_freq_encode'] = df['job'].map(fe)
+    df
+    # encodage categorielle avec plusieurs valeurs differentes pour les features 
+    # grouper les categories 
+    df.groupby('education').size()
+    # calcul de la frequence par categories
+    fe = df.groupby('education').size()/len(df)
+    # insertion dans le dataframe
+    df.loc[:,'education_freq_encode'] = df['education'].map(fe)
+    df
+    # encodage colonne categorielle de type binaire x
+    from sklearn.preprocessing import LabelEncoder
+    le = LabelEncoder()
+    df.default = le.fit_transform(df.default)
+    df.housing = le.fit_transform(df.housing)
+    df.loan = le.fit_transform(df.loan)
+    df.contact = le.fit_transform(df.contact)
+    df.head()
+    # encodage categorielle avec plusieurs valeurs differentes pour les features 
+    # grouper les categories 
+    df.groupby('month').size()
+    # calcul de la frequence par categories
+    fe = df.groupby('month').size()/len(df)
+    # insertion dans le dataframe
+    df.loc[:,'month_freq_encode'] = df['month'].map(fe)
+    df
+    # encodage categorielle avec plusieurs valeurs differentes pour les features 
+    # grouper les categories 
+    df.groupby('day_of_week').size()
+    # calcul de la frequence par categories
+    fe = df.groupby('day_of_week').size()/len(df)
+    # insertion dans le dataframe
+    df.loc[:,'day_freq_encode'] = df['day_of_week'].map(fe)
+    df
+    # encodage categorielle avec plusieurs valeurs differentes pour les features 
+    # grouper les categories 
+    df.groupby('poutcome').size()
+    # calcul de la frequence par categories
+    fe = df.groupby('poutcome').size()/len(df)
+    # insertion dans le dataframe
+    df.loc[:,'poutcome_freq_encode'] = df['poutcome'].map(fe)
+    df
     from sklearn.preprocessing import LabelEncoder  
-    label_encoder = LabelEncoder()  
-    df['job'] = label_encoder.fit_transform(df['job'])  
-    df['marital'] = label_encoder.fit_transform(df['marital'])    
-    df['education'] = label_encoder.fit_transform(df['education'])  
-    df['default'] = label_encoder.fit_transform(df['default'])
-    df['housing'] = label_encoder.fit_transform(df['housing'])
-    df['loan'] = label_encoder.fit_transform(df['loan'])
-    df['contact'] = label_encoder.fit_transform(df['contact'])
-    df['month'] = label_encoder.fit_transform(df['month'])
-    df['day_of_week'] = label_encoder.fit_transform(df['day_of_week'])
-    df['poutcome'] = label_encoder.fit_transform(df['poutcome'])
-    # Définir X (caractéristiques) et y (cible)
-    X = df[['age', 'duration', 'campaign']]  # Remplacez par vos colonnes pertinentes
-    y = df['y'].map({'yes': 1, 'no': 0})  # Convertir la cible en numérique
+    # Création de l'encodeur  
+    encoder = LabelEncoder()  
+    df['y_encoded'] = encoder.fit_transform(df['y'])  
+    # Suppression de plusieurs colonnes  
+    colonnes_a_supprimer = ['job','marital','education','default','housing','loan','contact','month','day_of_week','poutcome','y']  
+    df_propre = df.drop(colonnes_a_supprimer, axis=1)  
 
+    # Afficher le DataFrame résultant  
+    df_propre  
+    from imblearn.over_sampling import RandomOverSampler  
+    y_encoded = df_propre['y_encoded'].values  # Remplacez 'target' par le nom de votre colonne cible dans df_propre si nécessaire  
+
+    # Définir le suréchantillonneur  
+    ros = RandomOverSampler(random_state=42)  
+
+    # Créer une matrice X factice (ou utilisez vos features réelles à partir de df_propre)  
+    X = df_propre.drop(columns=['y_encoded']).values  # Assurez-vous de retirer la colonne cible  
+
+    # Appliquer le suréchantillonnage  
+    X_resampled, y_resampled = ros.fit_resample(X, y_encoded)  
+
+    # Convertir les résultats en DataFrame pour une manipulation plus facile si nécessaire  
+    df_resampled = pd.DataFrame(X_resampled, columns=df_propre.columns[:-1])  # Retirez la dernière colonne correspondant à 'target'  
+    df_resampled['y_encoded'] = y_resampled  # Ajoutez la colonne cible équilibrée  
+
+    # Afficher les résultats  
+    print("Distribution originale :")  
+    print(pd.Series(y_encoded).value_counts())  
+    print("\nDistribution après suréchantillonnage :")  
+    print(pd.Series(y_resampled).value_counts())  
+    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import RandomForestClassifier
+    # definition des donnees d'entrainement et de la variable cible
+    X = df_propre[['age', 'duration', 'campaign','pdays','previous','emp.var.rate','cons.price.idx','cons.conf.idx','euribor3m','nr.employed','marital_freq_encode','job_freq_encode','education_freq_encode','month_freq_encode','day_freq_encode','poutcome_freq_encode']]
+    y = df_propre['y_encoded']  
     # Diviser les données en ensembles d'entraînement et de test
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Entraîner un modèle simple pour tester
     model = RandomForestClassifier()
     model.fit(X_train, y_train)
+      from sklearn.metrics import accuracy_score, classification_report 
+    # Faire des prédictions sur l'ensemble de test  
+    y_pred = model.predict(X_test)  
 
-        # Tester une prédiction
-    prediction = model.predict(X_test)
-    print(prediction[:5])  # Afficher les premières prédictions
+    # Évaluer le modèle  
+    accuracy = accuracy_score(y_test, y_pred)  
+    report = classification_report(y_test, y_pred)  
 
-    # Création et entraînement du modèle
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_train, y_train)
-    from sklearn.utils import resample  
-
-    # Concatenation des données d'origine  
-    data = pd.concat([X_train, y_train], axis=1)  
-
-    # Séparez les classes  
-    no_class = data[data['y'] == 0]  # Classe majoritaire  
-    yes_class = data[data['y'] == 1]  # Classe minoritaire  
-
-    # Sous-échantillonnage de la classe majoritaire  
-    no_class_downsampled = resample(no_class,  
-                                 replace=False,  # Ne pas remplacer  
-                                 n_samples=len(yes_class),  # Pour équilibrer  
-                                 random_state=42)  # Pour la reproductibilité  
-
-    # Combiner la classe minoritaire avec la classe majoritaire sous-échantillonnée  
-    balanced_data = pd.concat([no_class_downsampled, yes_class])  
-
-    #  Séparer les caractéristiques et la cible  
-    X_balanced = balanced_data.drop('y', axis=1)  
-    y_balanced = balanced_data['y']  
+    # Afficher les résultats  
+    print(f'Accuracy: {accuracy:.2f}')  
+    print('Classification Report:')  
+    print(report)   
 elif st.session_state.page_selection == 'prediction':
         # ... (votre code pour la page de prédiction)
         # Page Prédiction  
