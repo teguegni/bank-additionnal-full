@@ -278,87 +278,48 @@ elif st.session_state.page_selection == 'prediction':
         # ... (votre code pour la page de prédiction)
         # Page Prédiction  
     st.title("🔮 Prédiction")  
-    from sklearn.ensemble import RandomForestClassifier  
-    import streamlit as st  
+    # Création des champs de saisie  
+    age = st.number_input("Âge", min_value=0, max_value=120, value=30)  # Vous pouvez définir des valeurs par défaut  
+    duration = st.number_input("Durée (en secondes)", min_value=0, value=100)  
+    campaign = st.number_input("Nombre de contacts lors de cette campagne", min_value=0, value=1)  
+    pdays = st.number_input("Nombre de jours depuis le dernier contact", min_value=-1, value=-1)  # -1 pour 'non contacté'  
+    previous = st.number_input("Nombre de contacts précédents", min_value=0, value=0)  
+    emp_var_rate = st.number_input("Taux de variation de l'emploi (%)", value=0.0)  
+    cons_price_idx = st.number_input("Indice des prix à la consommation", value=92.0)  
+    cons_conf_idx = st.number_input("Indice de confiance des consommateurs", value=-50.0)  
+    euribor3m = st.number_input("Taux d'Euribor à 3 mois (%)", value=0.0)  
+    nr_employed = st.number_input("Nombre d'employés", value=5000)  
+    marital_freq_encode = st.number_input("Code marital", min_value=0, value=0)  
+    job_freq_encode = st.number_input("Code emploi", min_value=0, value=0)  
+    education_freq_encode = st.number_input("Code éducation", min_value=0, value=0)  
+    month_freq_encode = st.number_input("Code mois", min_value=0, value=0)  
+    day_freq_encode = st.number_input("Code jour", min_value=0, value=0)  
+    poutcome_freq_encode = st.number_input("Code résultat de la campagne précédente", min_value=0, value=0)  
 
-    # Formulaire pour saisir les caractéristiques  
-   # Formulaire de Soumission de Données  
-
-    # Veuillez remplir le formulaire ci-dessous avec les informations requises :  
-
-    1. **Âge** (age)  
-   - **Type**: Numérique  
-   - **Exemple**: 30  
-
-    2. **Durée** (duration)  
-   - **Type**: Numérique (en secondes)  
-   - **Exemple**: 120  
-
-    3. **Campagne** (campaign)  
-   - **Type**: Numérique  
-   - **Exemple**: 2  
-
-    4. **Pdays** (pdays)  
-   - **Type**: Numérique (jours depuis le dernier contact, -1 si pas de contact)  
-   - **Exemple**: 6  
-
-    5. **Précedent** (previous)  
-   - **Type**: Numérique  
-   - **Exemple**: 1  
-
-    6. **Taux d'Emploi Varié** (emp_var_rate)  
-   - **Type**: Numérique (en pourcentage)  
-   - **Exemple**: -1.8  
-
-    7. **Indice de Prix à la Consommation** (cons_price_idx)  
-   - **Type**: Numérique  
-   - **Exemple**: 92.893  
-
-    8. **Indice de Confiance des Consommateurs** (cons_conf_idx)  
-   - **Type**: Numérique  
-   - **Exemple**: -46.2  
-
-    9. **EURIBOR à 3 mois** (euribor3m)  
-   - **Type**: Numérique (en pourcentage)  
-   - **Exemple**: 1.3  
-
-    10. **Nombre d'Employés** (nr_employed)  
-    - **Type**: Numérique  
-    - **Exemple**: 5191  
-
-    11. **Fréquence de l'État Civil** (marital_freq_encode)  
-    - **Type**: Catégorique (ex: 0 pour célibataire, 1 pour marié, etc.)  
-    - **Exemple**: 1  
-
-    12. **Fréquence de l'Emploi** (job_freq_encode)  
-    - **Type**: Catégorique (ex: 0 pour emploi n°1, 1 pour emploi n°2, etc.)  
-    - **Exemple**: 0  
-
-    13. **Fréquence de l'Éducation** (education_freq_encode)  
-    - **Type**: Catégorique (ex: 0 pour primaire, 1 pour secondaire, etc.)  
-    - **Exemple**: 2  
-
-    14. **Fréquence du Mois** (month_freq_encode)  
-    - **Type**: Catégorique (ex: 0 pour janvier, 1 pour février, etc.)  
-    - **Exemple**: 1  
-
-    15. **Fréquence du Jour** (day_freq_encode)  
-    - **Type**: Catégorique (ex: 0 pour dimanche, 6 pour samedi, etc.)  
-    - **Exemple**: 3  
-
-16. **Fréquence du Résultat Précédent** (poutcome_freq_encode)  
-    - **Type**: Catégorique (ex: 0 pour échec, 1 pour succès, etc.)  
-    - **Exemple**: 0  
-
-    ---  
-
-    ### Soumettre  
-
-    [**Envoyer le Formulaire**]   
-
-    ---  
-
-    Merci de votre participation !
+# Bouton pour soumettre le formulaire  
+if st.button("Soumettre"):  
+    # Ici, vous pouvez traiter les données saisies  
+    st.success("Les données ont été soumises avec succès!")  
+    st.write({  
+        "Âge": age,  
+        "Durée": duration,  
+        "Campagne": campaign,  
+        "Pdays": pdays,  
+        "Précédent": previous,  
+        "Taux d'emploi": emp_var_rate,  
+        "Indice des prix": cons_price_idx,  
+        "Indice de confiance": cons_conf_idx,  
+        "Euribor": euribor3m,  
+        "Nombre d'employés": nr_employed,  
+        "Code marital": marital_freq_encode,  
+        "Code emploi": job_freq_encode,  
+        "Code éducation": education_freq_encode,  
+        "Code mois": month_freq_encode,  
+        "Code jour": day_freq_encode,  
+        "Code résultat": poutcome_freq_encode,  
+    })
+   
+  
         
        
 # Vous pouvez également ajouter un bouton pour soumettre le formulaire  
