@@ -305,10 +305,10 @@ elif st.session_state.page_selection == 'prediction':
         cons_conf_idx,  
         euribor3m,  
         nr_employed,  
-        marital_dict[marital_freq_encode],  
-        job_dict[job_freq_encode],  
-        education_dict[education_freq_encode],  
-        month_dict[month_freq_encode],  
+        marital_freq_encode,  
+        job_freq_encode,  
+        education_freq_encode,  
+        month_freq_encode,  
         day_freq_encode,  
         poutcome_freq_encode  
     ]  
