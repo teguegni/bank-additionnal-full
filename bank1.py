@@ -293,17 +293,32 @@ elif st.session_state.page_selection == 'prediction':
     euribor3m = st.number_input("Taux Euribor à 3 mois (%)", value=0.0)  
     nr_employed = st.number_input("Nombre d'employés (calculé)", value=5191)  
 
-    # Variables catégorielles (encodées)  
-    marital_freq_encode = st.selectbox("Statut marital", ["célibataire", "marié", "divorcé"])  
-    job_freq_encode = st.selectbox("Profession", ["ouvrier", "employé", "professionnel", "autre"])  
-    education_freq_encode = st.selectbox("Niveau d'éducation", ["primaire", "secondaire", "tertiaire", "autre"])  
-    month_freq_encode = st.selectbox("Mois de contact", ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"])  
-    day_freq_encode = st.selectbox("Jour de contact", list(range(1, 32)))  
-    poutcome_freq_encode = st.selectbox("Résultat de la campagne précédente", ["succès", "échec", "autre"])  
+   # Préparer les données pour la prédiction  
+    input_data = [  
+        age,  
+        duration,  
+        campaign,  
+        pdays,  
+        previous,  
+        emp_var_rate,  
+        cons_price_idx,  
+        cons_conf_idx,  
+        euribor3m,  
+        nr_employed,  
+        marital_dict[marital_freq_encode],  
+        job_dict[job_freq_encode],  
+        education_dict[education_freq_encode],  
+        month_dict[month_freq_encode],  
+        day_freq_encode,  
+        poutcome_dict[poutcome_freq_encode]  
+    ]  
 
-    # Vous pouvez également ajouter un bouton pour soumettre le formulaire  
+# Vous pouvez également ajouter un bouton pour soumettre le formulaire  
 if st.button('Soumettre'):  
-    # Traitement des données ou affichage des résultats ici  
-    st.write("Données soumises avec succès!")
+    # Faire la prédiction  
+    prediction = model.predict([input_data])  
+    result = "Prêt accordé." if prediction[0] == 1 else "Prêt non accordé."  
     
+    # Affichage des résultats  
+    st.write(result)  
    
