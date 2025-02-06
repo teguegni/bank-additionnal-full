@@ -161,13 +161,13 @@ elif st.session_state.page_selection == 'apprentissage_automatique':
     # Fonction pour détecter et remplacer les valeurs aberrantes avec les Bounds
     def replace_outliers(df):
         for col in df.select_dtypes(include=['number']).columns:  # Only process numeric columns
-        Q1 = df[col].quantile(0.25)
-        Q3 = df[col].quantile(0.75)
-        IQR = Q3 - Q1
-        lower_bound = Q1 - 1.5 * IQR
-        upper_bound = Q3 + 1.5 * IQR
-        df[col] = np.where(df[col] < lower_bound, lower_bound, df[col])
-        df[col] = np.where(df[col] > upper_bound, upper_bound,df[col])
+            Q1 = df[col].quantile(0.25)
+            Q3 = df[col].quantile(0.75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            df[col] = np.where(df[col] < lower_bound, lower_bound, df[col])
+            df[col] = np.where(df[col] > upper_bound, upper_bound,df[col])
     # Vérifiez que les colonnes nécessaires existent
     print(df.columns)
     replace_outliers(df)
