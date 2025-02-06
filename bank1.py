@@ -272,7 +272,7 @@ elif st.session_state.page_selection == 'apprentissage_automatique':
     # Entraîner un modèle simple pour tester
     model = RandomForestClassifier()
     model.fit(X_train, y_train)
-      from sklearn.metrics import accuracy_score, classification_report 
+    from sklearn.metrics import accuracy_score, classification_report 
     # Faire des prédictions sur l'ensemble de test  
     y_pred = model.predict(X_test)  
 
