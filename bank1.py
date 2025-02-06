@@ -118,16 +118,6 @@ elif st.session_state.page_selection == 'analyse_exploratoire':
         if df[column].dtype == 'object':
             mode_value = df[column].mode()[0]
             df[column] = df[column].replace('unknown', mode_value)
-    # Affichage des tables croisées et graphiques
-    for column in categorical_cols:
-        st.subheader(f"Table croisée pour {column}")
-        st.write(df.groupby(['y', column])[column].size().unstack(level=0))
-
-        st.subheader(f"Countplot pour {column}")
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.countplot(x=df["y"], hue=df[column], ax=ax)
-        st.pyplot(fig)  # Utilisation de st.pyplot pour afficher le graphique
-
     # Vérification des valeurs manquantes
     st.subheader("Vérification des valeurs manquantes")
     missing_values = df.isnull().sum()
@@ -289,40 +279,31 @@ elif st.session_state.page_selection == 'prediction':
         # Page Prédiction  
     st.title("🔮 Prédiction")  
     from sklearn.ensemble import RandomForestClassifier  
+    import streamlit as st  
 
-        # Formulaire pour saisir les caractéristiques  
+    # Formulaire pour saisir les caractéristiques  
     age = st.number_input("Âge du client", min_value=18, max_value=120, value=30)  
     duration = st.number_input("Durée du contact (seconds)", min_value=0, value=60)  
     campaign = st.number_input("Nombre de contacts lors de la campagne", min_value=1, value=1)  
-    
-    if st.button("Prédire"): 
-        from sklearn.model_selection import train_test_split  
-        from sklearn.preprocessing import StandardScaler  
-        from sklearn.ensemble import RandomForestClassifier
-        from sklearn.metrics import confusion_matrix
-        import seaborn as sns  
-        import matplotlib.pyplot as plt  # Importation de matplotlib.pyplot  
-    try:  
-            # Prétraitement potentiel des données d'entrée et des caractéristiques  
-            # (Assurez-vous que le modèle est déjà formé au préalable et chargé ici)  
-            X = df[['age', 'duration', 'campaign']]  # Ajustez selon vos colonnes de caractéristiques.  
-            y = df['y']  # Cible à prédire  
-            
-            # Splitting and training d'un modèle d'exemple  
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)  
-            model = RandomForestClassifier()  
-            model.fit(X_train, y_train)  
-            
-            prediction = model.predict([[age, duration, campaign]])  
-            subscription_status = "Oui" if prediction[0] == 'yes' else "Non"  
-            st.success(f"Le client va-t-il souscrire au produit ? : **{subscription_status}**") 
-            # Prédictions  
-            y_pred = model.predict(X_test)  
+    pdays = st.number_input("Nombre de jours depuis le dernier contact", min_value=-1, value=-1)  # -1 si jamais contacté  
+    previous = st.number_input("Nombre de contacts avant cette campagne", min_value=0, value=0)  
+    emp_var_rate = st.number_input("Taux de variation de l'emploi (%)", value=0.0)  
+    cons_price_idx = st.number_input("Indice des prix à la consommation", value=93.0)  
+    cons_conf_idx = st.number_input("Indice de confiance des consommateurs", value=-40.0)  
+    euribor3m = st.number_input("Taux Euribor à 3 mois (%)", value=0.0)  
+    nr_employed = st.number_input("Nombre d'employés (calculé)", value=5191)  
 
-            # Évaluation  
-            from sklearn.metrics import confusion_matrix
-            from sklearn.metrics import classification_report, accuracy_score
-            print(confusion_matrix(y_test, y_pred))  
-            print(classification_report(y_test, y_pred))
-    except Exception as e:  
-            st.error(f"Une erreur est survenue : {e}")
+    # Variables catégorielles (encodées)  
+    marital_freq_encode = st.selectbox("Statut marital", ["célibataire", "marié", "divorcé"])  
+    job_freq_encode = st.selectbox("Profession", ["ouvrier", "employé", "professionnel", "autre"])  
+    education_freq_encode = st.selectbox("Niveau d'éducation", ["primaire", "secondaire", "tertiaire", "autre"])  
+    month_freq_encode = st.selectbox("Mois de contact", ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"])  
+    day_freq_encode = st.selectbox("Jour de contact", list(range(1, 32)))  
+    poutcome_freq_encode = st.selectbox("Résultat de la campagne précédente", ["succès", "échec", "autre"])  
+
+    # Vous pouvez également ajouter un bouton pour soumettre le formulaire  
+if st.button('Soumettre'):  
+    # Traitement des données ou affichage des résultats ici  
+    st.write("Données soumises avec succès!")
+    
+   
