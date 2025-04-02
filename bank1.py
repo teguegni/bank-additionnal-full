@@ -7,10 +7,8 @@ import altair as alt
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
-from imblearn.over_sampling import RandomOverSampler
 from sklearn.preprocessing import LabelEncoder
-imbalanced-learn
-
+from sklearn.utils import resample
 
 # Configuration de la page
 st.set_page_config(
@@ -189,17 +187,24 @@ elif st.session_state.page_selection == 'apprentissage_automatique':
     colonnes_a_supprimer = ['job', 'marital', 'education', 'default', 'housing', 'loan', 'contact', 'month', 'day_of_week', 'poutcome', 'y']
     df_propre = df.drop(colonnes_a_supprimer, axis=1)
 
-    # Suréchantillonnage
+    # Suréchantillonnage avec sklearn
     y_encoded = df_propre['y_encoded'].values
     X = df_propre.drop(columns=['y_encoded']).values
-    ros = RandomOverSampler(random_state=42)
-    X_resampled, y_resampled = ros.fit_resample(X, y_encoded)
-    df_resampled = pd.DataFrame(X_resampled, columns=df_propre.columns[:-1])
-    df_resampled['y_encoded'] = y_resampled
+
+    # Suréchantillonnage simple
+    df_majority = df_propre[df_propre.y_encoded == 0]
+    df_minority = df_propre[df_propre.y_encoded == 1]
+
+    df_minority_upsampled = resample(df_minority,
+                                     replace=True,
+                                     n_samples=df_majority.shape[0],
+                                     random_state=42)
+
+    df_upsampled = pd.concat([df_majority, df_minority_upsampled])
 
     # Division des données
-    X = df_resampled.drop(columns=['y_encoded'])
-    y = df_resampled['y_encoded']
+    X = df_upsampled.drop(columns=['y_encoded'])
+    y = df_upsampled['y_encoded']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Entraînement du modèle
@@ -243,6 +248,7 @@ elif st.session_state.page_selection == 'prediction':
         prediction = model.predict(input_data)
         result = "Prêt accordé." if prediction[0] == 1 else "Prêt non accordé."
         st.write(result)
+
 
 
    
