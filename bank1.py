@@ -9,6 +9,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from imblearn.over_sampling import RandomOverSampler
 from sklearn.preprocessing import LabelEncoder
+imbalanced-learn
+
 
 # Configuration de la page
 st.set_page_config(
