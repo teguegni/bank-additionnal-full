@@ -24,7 +24,7 @@ st.markdown(
     """
     <style>
     body {
-        background-image: url('https://raw.githubusercontent.com/teguegni/bank-additionnal-full/main/image1.jpg');
+        background-image: url('https://github.com/teguegni/bank-additionnal-full/blob/main/image1.jpg');
         background-size: cover;
     }
     </style>
