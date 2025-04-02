@@ -9,6 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils import resample
+import pickle
 
 # Configuration de la page avec une image d'arrière-plan
 st.set_page_config(
@@ -23,7 +24,7 @@ st.markdown(
     """
     <style>
     body {
-        background-image: url(image1.jpg');
+        background-image: url('https://raw.githubusercontent.com/teguegni/bank-additionnal-full/main/image1.jpg');
         background-size: cover;
     }
     </style>
@@ -216,8 +217,8 @@ elif st.session_state.page_selection == 'apprentissage_automatique':
     df_upsampled = pd.concat([df_majority, df_minority_upsampled])
 
     # Division des données
-    X = df_upsampled.drop(columns=['y_encoded'])
-    y = df_upsampled['y_encoded']
+    X = df_upsampled.drop(columns=['y_encoded']).values
+    y = df_upsampled['y_encoded'].values
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Entraînement du modèle
@@ -233,9 +234,21 @@ elif st.session_state.page_selection == 'apprentissage_automatique':
     st.write('Classification Report:')
     st.write(report)
 
+    # Sauvegarder le modèle
+    with open('model_bank_data.pkl', 'wb') as model_file:
+        pickle.dump(model, model_file)
+
 elif st.session_state.page_selection == 'prediction':
     # Page Prédiction
     st.title("🔮 Prédiction")
+
+    # Charger le modèle
+    try:
+        with open('model_bank_data.pkl', 'rb') as model_file:
+            model = pickle.load(model_file)
+    except FileNotFoundError:
+        st.error("Le modèle n'a pas été trouvé. Veuillez entraîner le modèle d'abord.")
+        st.stop()
 
     # Création des champs de saisie
     age = st.number_input("Âge", min_value=0, max_value=120, value=30, key="input_age")
@@ -264,6 +277,7 @@ elif st.session_state.page_selection == 'prediction':
 
 if __name__ == '__main__':
     main()
+
 
 
 
