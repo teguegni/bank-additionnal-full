@@ -1,17 +1,20 @@
-# importation des bibiotheques
 import numpy as np
 import pandas as pd
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
-import altair as alt 
-
+import altair as alt
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+from imblearn.over_sampling import RandomOverSampler
+from sklearn.preprocessing import LabelEncoder
 
 # Configuration de la page
 st.set_page_config(
     page_title="Classification des Données Bancaires",
-    page_icon="🏦",  
-    layout="wide", 
+    page_icon="🏦",
+    layout="wide",
     initial_sidebar_state="expanded"
 )
 
@@ -28,7 +31,7 @@ def set_page_selection(page):
     st.session_state.page_selection = page
 
 with st.sidebar:
-    st.title(' 🏦 Classification des Données Bancaires')
+    st.title('🏦 Classification des Données Bancaires')
 
     # Navigation par boutons
     st.subheader("Sections")
@@ -48,9 +51,9 @@ with st.sidebar:
     st.markdown("""
         Un tableau de bord interactif pour explorer et classifier les données d'une campagne marketing bancaire.
 
-        -  [Jeu de Données](https://archive.ics.uci.edu/ml/datasets/Bank+Marketing)
-        -  [Notebook Google Colab](https://colab.research.google.com/drive/1KJDBrx3akSPUW42Kbeepj64ZisHFD-NV?usp=sharing)
-        -  [Dépôt GitHub](https://github.com/teguegni/bank-additionnal-full/Streamlit-Bank-Classification-Dashboard)
+        - [Jeu de Données](https://archive.ics.uci.edu/ml/datasets/Bank+Marketing)
+        - [Notebook Google Colab](https://colab.research.google.com/drive/1KJDBrx3akSPUW42Kbeepj64ZisHFD-NV?usp=sharing)
+        - [Dépôt GitHub](https://github.com/teguegni/bank-additionnal-full/Streamlit-Bank-Classification-Dashboard)
 
         **Auteur :** [`Kenfack Teguegni Junior`](https://jcdiamante.com)
     """)
@@ -84,13 +87,14 @@ if st.session_state.page_selection == 'a_propos':
 
         ✉️ Contact : kenfackteguegni@gmail.com
     """)
+
 elif st.session_state.page_selection == 'conclusion':
-     # Page À Propos
-    st.title("️ conclusion")
+    # Page Conclusion
+    st.title("️ Conclusion")
     st.markdown("""
-        Un traitement minutieux et réfléchi du DataFrame bank-additional-full est fondamental pour maximiser la précision 
+        Un traitement minutieux et réfléchi du DataFrame `bank-additional-full.csv` est fondamental pour maximiser la précision
         et la fiabilité du modèle de prédiction. En combinant explorations, prétraitements adéquats, et évaluations rigoureuses,
-         on peut développer un modèle robuste qui est mieux équipé pour prédire les comportements des clients envers la souscription à un produit.
+        un modèle robuste peut être développé pour mieux prédire les comportements des clients envers la souscription à un produit.
     """)
 
 elif st.session_state.page_selection == 'jeu_de_donnees':
@@ -99,7 +103,7 @@ elif st.session_state.page_selection == 'jeu_de_donnees':
 
     # Afficher les premières lignes du DataFrame
     if st.checkbox("Afficher le DataFrame"):
-        nb_rows = st.slider("Nombre de lignes à afficher :", min_value=105, max_value=41189, value=10)
+        nb_rows = st.slider("Nombre de lignes à afficher :", min_value=1, max_value=len(df), value=10)
         st.write(df.head(nb_rows))
 
     # Afficher les statistiques descriptives
@@ -108,16 +112,20 @@ elif st.session_state.page_selection == 'jeu_de_donnees':
 
 elif st.session_state.page_selection == 'analyse_exploratoire':
     st.title(" Analyse Exploratoire")
-    #  verifies s'il ya des duplications dans la dataframe et affiche le nombre de duplications
+
+    # Vérification des duplications
     duplicates = df.duplicated()
-    duplicates.value_counts()
-    # supprimations des duplications 
-    df.drop_duplicates()
+    st.write(f"Nombre de duplications : {duplicates.sum()}")
+
+    # Suppression des duplications
+    df = df.drop_duplicates()
+
     # Remplacement des valeurs 'unknown'
     for column in df.columns:
         if df[column].dtype == 'object':
             mode_value = df[column].mode()[0]
             df[column] = df[column].replace('unknown', mode_value)
+
     # Vérification des valeurs manquantes
     st.subheader("Vérification des valeurs manquantes")
     missing_values = df.isnull().sum()
@@ -145,189 +153,93 @@ elif st.session_state.page_selection == 'analyse_exploratoire':
     st.altair_chart(age_job_chart, use_container_width=True)
 
 elif st.session_state.page_selection == 'apprentissage_automatique':
-    # selection des colonnes numerique 
-    colonne_numerique = df[['age','duration','campaign','pdays','previous','emp.var.rate','cons.price.idx','cons.conf.idx','euribor3m','nr.employed']]
-    print(colonne_numerique)
-    # Fonction pour détecter et remplacer les valeurs aberrantes avec les Bounds
+    # Sélection des colonnes numériques
+    colonne_numerique = df[['age', 'duration', 'campaign', 'pdays', 'previous', 'emp.var.rate', 'cons.price.idx', 'cons.conf.idx', 'euribor3m', 'nr.employed']]
+
+    # Fonction pour détecter et remplacer les valeurs aberrantes
     def replace_outliers(df):
-        for col in df.select_dtypes(include=['number']).columns:  # Only process numeric columns
+        for col in df.select_dtypes(include=['number']).columns:
             Q1 = df[col].quantile(0.25)
             Q3 = df[col].quantile(0.75)
             IQR = Q3 - Q1
             lower_bound = Q1 - 1.5 * IQR
             upper_bound = Q3 + 1.5 * IQR
             df[col] = np.where(df[col] < lower_bound, lower_bound, df[col])
-            df[col] = np.where(df[col] > upper_bound, upper_bound,df[col])
-    # Vérifiez que les colonnes nécessaires existent
-    print(df.columns)
+            df[col] = np.where(df[col] > upper_bound, upper_bound, df[col])
+
     replace_outliers(df)
-    sns.boxplot(x='age',data=df)
-    # faire la matrice de correlation
-    sns.heatmap(df.select_dtypes(include=['number']).corr(),annot =True)
-    # encodage categorielle avec plusieurs valeurs differentes pour les features 
-    # grouper les categories 
-    df.groupby('marital').size()
-    # calcul de la frequence par categories
-    fe = df.groupby('marital').size()/len(df)
-    # insertion dans le dataframe
-    df.loc[:,'marital_freq_encode'] = df['marital'].map(fe)
-    df
-    # encodage categorielle avec plusieurs valeurs differentes pour les features 
-    # grouper les categories 
-    df.groupby('job').size()
-    # calcul de la frequence par categories
-    fe = df.groupby('job').size()/len(df)
-    # insertion dans le dataframe
-    df.loc[:,'job_freq_encode'] = df['job'].map(fe)
-    df
-    # encodage categorielle avec plusieurs valeurs differentes pour les features 
-    # grouper les categories 
-    df.groupby('education').size()
-    # calcul de la frequence par categories
-    fe = df.groupby('education').size()/len(df)
-    # insertion dans le dataframe
-    df.loc[:,'education_freq_encode'] = df['education'].map(fe)
-    df
-    # encodage colonne categorielle de type binaire x
-    from sklearn.preprocessing import LabelEncoder
+
+    # Encodage des variables catégorielles
+    for column in ['marital', 'job', 'education', 'month', 'day_of_week', 'poutcome']:
+        fe = df.groupby(column).size() / len(df)
+        df[f'{column}_freq_encode'] = df[column].map(fe)
+
+    # Encodage des colonnes catégorielles binaires
     le = LabelEncoder()
-    df.default = le.fit_transform(df.default)
-    df.housing = le.fit_transform(df.housing)
-    df.loan = le.fit_transform(df.loan)
-    df.contact = le.fit_transform(df.contact)
-    df.head()
-    # encodage categorielle avec plusieurs valeurs differentes pour les features 
-    # grouper les categories 
-    df.groupby('month').size()
-    # calcul de la frequence par categories
-    fe = df.groupby('month').size()/len(df)
-    # insertion dans le dataframe
-    df.loc[:,'month_freq_encode'] = df['month'].map(fe)
-    df
-    # encodage categorielle avec plusieurs valeurs differentes pour les features 
-    # grouper les categories 
-    df.groupby('day_of_week').size()
-    # calcul de la frequence par categories
-    fe = df.groupby('day_of_week').size()/len(df)
-    # insertion dans le dataframe
-    df.loc[:,'day_freq_encode'] = df['day_of_week'].map(fe)
-    df
-    # encodage categorielle avec plusieurs valeurs differentes pour les features 
-    # grouper les categories 
-    df.groupby('poutcome').size()
-    # calcul de la frequence par categories
-    fe = df.groupby('poutcome').size()/len(df)
-    # insertion dans le dataframe
-    df.loc[:,'poutcome_freq_encode'] = df['poutcome'].map(fe)
-    df
-    from sklearn.preprocessing import LabelEncoder  
-    # Création de l'encodeur  
-    encoder = LabelEncoder()  
-    df['y_encoded'] = encoder.fit_transform(df['y'])  
-    # Suppression de plusieurs colonnes  
-    colonnes_a_supprimer = ['job','marital','education','default','housing','loan','contact','month','day_of_week','poutcome','y']  
-    df_propre = df.drop(colonnes_a_supprimer, axis=1)  
+    for column in ['default', 'housing', 'loan', 'contact']:
+        df[column] = le.fit_transform(df[column])
 
-    # Afficher le DataFrame résultant  
-    df_propre  
-    from imblearn.over_sampling import RandomOverSampler  
-    y_encoded = df_propre['y_encoded'].values  # Remplacez 'target' par le nom de votre colonne cible dans df_propre si nécessaire  
+    # Encodage de la colonne cible
+    encoder = LabelEncoder()
+    df['y_encoded'] = encoder.fit_transform(df['y'])
 
-    # Définir le suréchantillonneur  
-    ros = RandomOverSampler(random_state=42)  
+    # Suppression des colonnes catégorielles originales
+    colonnes_a_supprimer = ['job', 'marital', 'education', 'default', 'housing', 'loan', 'contact', 'month', 'day_of_week', 'poutcome', 'y']
+    df_propre = df.drop(colonnes_a_supprimer, axis=1)
 
-    # Créer une matrice X factice (ou utilisez vos features réelles à partir de df_propre)  
-    X = df_propre.drop(columns=['y_encoded']).values  # Assurez-vous de retirer la colonne cible  
+    # Suréchantillonnage
+    y_encoded = df_propre['y_encoded'].values
+    X = df_propre.drop(columns=['y_encoded']).values
+    ros = RandomOverSampler(random_state=42)
+    X_resampled, y_resampled = ros.fit_resample(X, y_encoded)
+    df_resampled = pd.DataFrame(X_resampled, columns=df_propre.columns[:-1])
+    df_resampled['y_encoded'] = y_resampled
 
-    # Appliquer le suréchantillonnage  
-    X_resampled, y_resampled = ros.fit_resample(X, y_encoded)  
-
-    # Convertir les résultats en DataFrame pour une manipulation plus facile si nécessaire  
-    df_resampled = pd.DataFrame(X_resampled, columns=df_propre.columns[:-1])  # Retirez la dernière colonne correspondant à 'target'  
-    df_resampled['y_encoded'] = y_resampled  # Ajoutez la colonne cible équilibrée  
-
-    # Afficher les résultats  
-    print("Distribution originale :")  
-    print(pd.Series(y_encoded).value_counts())  
-    print("\nDistribution après suréchantillonnage :")  
-    print(pd.Series(y_resampled).value_counts())  
-    from sklearn.model_selection import train_test_split
-    from sklearn.ensemble import RandomForestClassifier
-    # definition des donnees d'entrainement et de la variable cible
-    X = df_propre[['age', 'duration', 'campaign','pdays','previous','emp.var.rate','cons.price.idx','cons.conf.idx','euribor3m','nr.employed','marital_freq_encode','job_freq_encode','education_freq_encode','month_freq_encode','day_freq_encode','poutcome_freq_encode']]
-    y = df_propre['y_encoded']  
-    # Diviser les données en ensembles d'entraînement et de test
+    # Division des données
+    X = df_resampled.drop(columns=['y_encoded'])
+    y = df_resampled['y_encoded']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Entraîner un modèle simple pour tester
+    # Entraînement du modèle
     model = RandomForestClassifier()
     model.fit(X_train, y_train)
-    from sklearn.metrics import accuracy_score, classification_report 
-    # Faire des prédictions sur l'ensemble de test  
-    y_pred = model.predict(X_test)  
 
-    # Évaluer le modèle  
-    accuracy = accuracy_score(y_test, y_pred)  
-    report = classification_report(y_test, y_pred)  
+    # Évaluation du modèle
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    report = classification_report(y_test, y_pred)
 
-    # Afficher les résultats  
-    print(f'Accuracy: {accuracy:.2f}')  
-    print('Classification Report:')  
-    print(report)   
+    st.write(f'Accuracy: {accuracy:.2f}')
+    st.write('Classification Report:')
+    st.write(report)
+
 elif st.session_state.page_selection == 'prediction':
-        # ... (votre code pour la page de prédiction)
-        # Page Prédiction  
-    st.title("🔮 Prédiction")  
-    # Création des champs de saisie  
-    age = st.number_input("Âge", min_value=0, max_value=120, value=30)  # Vous pouvez définir des valeurs par défaut  
-    duration = st.number_input("Durée (en secondes)", min_value=0, value=100)  
-    campaign = st.number_input("Nombre de contacts lors de cette campagne", min_value=0, value=1)  
-    pdays = st.number_input("Nombre de jours depuis le dernier contact", min_value=-1, value=-1)  # -1 pour 'non contacté'  
-    previous = st.number_input("Nombre de contacts précédents", min_value=0, value=0)  
-    emp_var_rate = st.number_input("Taux de variation de l'emploi (%)", value=0.0)  
-    cons_price_idx = st.number_input("Indice des prix à la consommation", value=92.0)  
-    cons_conf_idx = st.number_input("Indice de confiance des consommateurs", value=-50.0)  
-    euribor3m = st.number_input("Taux d'Euribor à 3 mois (%)", value=0.0)  
-    nr_employed = st.number_input("Nombre d'employés", value=5000)  
-    marital_freq_encode = st.number_input("Code marital", min_value=0, value=0)  
-    job_freq_encode = st.number_input("Code emploi", min_value=0, value=0)  
-    education_freq_encode = st.number_input("Code éducation", min_value=0, value=0)  
-    month_freq_encode = st.number_input("Code mois", min_value=0, value=0)  
-    day_freq_encode = st.number_input("Code jour", min_value=0, value=0)  
-    poutcome_freq_encode = st.number_input("Code résultat de la campagne précédente", min_value=0, value=0)  
+    # Page Prédiction
+    st.title("🔮 Prédiction")
 
-# Bouton pour soumettre le formulaire  
-if st.button("Soumettre"):  
-    # Ici, vous pouvez traiter les données saisies  
-    st.success("Les données ont été soumises avec succès!")  
-    st.write({  
-        "Âge": age,  
-        "Durée": duration,  
-        "Campagne": campaign,  
-        "Pdays": pdays,  
-        "Précédent": previous,  
-        "Taux d'emploi": emp_var_rate,  
-        "Indice des prix": cons_price_idx,  
-        "Indice de confiance": cons_conf_idx,  
-        "Euribor": euribor3m,  
-        "Nombre d'employés": nr_employed,  
-        "Code marital": marital_freq_encode,  
-        "Code emploi": job_freq_encode,  
-        "Code éducation": education_freq_encode,  
-        "Code mois": month_freq_encode,  
-        "Code jour": day_freq_encode,  
-        "Code résultat": poutcome_freq_encode,  
-    })
-   
-  
-        
-       
-# Vous pouvez également ajouter un bouton pour soumettre le formulaire  
-if st.button('Soumettre'):  
-    # Faire la prédiction  
-    prediction = model.predict([input_data])  
-    result = "Prêt accordé." if prediction[0] == 1 else "Prêt non accordé."  
-    
-    # Affichage des résultats  
-    st.write(result)  
+    # Création des champs de saisie
+    age = st.number_input("Âge", min_value=0, max_value=120, value=30)
+    duration = st.number_input("Durée (en secondes)", min_value=0, value=100)
+    campaign = st.number_input("Nombre de contacts lors de cette campagne", min_value=0, value=1)
+    pdays = st.number_input("Nombre de jours depuis le dernier contact", min_value=-1, value=-1)
+    previous = st.number_input("Nombre de contacts précédents", min_value=0, value=0)
+    emp_var_rate = st.number_input("Taux de variation de l'emploi (%)", value=0.0)
+    cons_price_idx = st.number_input("Indice des prix à la consommation", value=92.0)
+    cons_conf_idx = st.number_input("Indice de confiance des consommateurs", value=-50.0)
+    euribor3m = st.number_input("Taux d'Euribor à 3 mois (%)", value=0.0)
+    nr_employed = st.number_input("Nombre d'employés", value=5000)
+    marital_freq_encode = st.number_input("Code marital", min_value=0, value=0)
+    job_freq_encode = st.number_input("Code emploi", min_value=0, value=0)
+    education_freq_encode = st.number_input("Code éducation", min_value=0, value=0)
+    month_freq_encode = st.number_input("Code mois", min_value=0, value=0)
+    day_freq_encode = st.number_input("Code jour", min_value=0, value=0)
+    poutcome_freq_encode = st.number_input("Code résultat de la campagne précédente", min_value=0, value=0)
+
+    # Bouton pour soumettre le formulaire
+    if st.button("Soumettre"):
+        input_data = np.array([[age, duration, campaign, pdays, previous, emp_var_rate, cons_price_idx, cons_conf_idx, euribor3m, nr_employed, marital_freq_encode, job_freq_encode, education_freq_encode, month_freq_encode, day_freq_encode, poutcome_freq_encode]])
+        prediction = model.predict(input_data)
+        result = "Prêt accordé." if prediction[0] == 1 else "Prêt non accordé."
+        st.write(result)
+
    
