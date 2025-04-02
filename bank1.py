@@ -10,12 +10,25 @@ from sklearn.metrics import accuracy_score, classification_report
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils import resample
 
-# Configuration de la page
+# Configuration de la page avec une image d'arrière-plan
 st.set_page_config(
     page_title="Classification des Données Bancaires",
     page_icon="🏦",
     layout="wide",
     initial_sidebar_state="expanded"
+)
+
+# Ajouter du CSS pour l'image d'arrière-plan
+st.markdown(
+    """
+    <style>
+    body {
+        background-image: url(image1.jpg');
+        background-size: cover;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 alt.themes.enable("dark")
@@ -248,6 +261,10 @@ elif st.session_state.page_selection == 'prediction':
         prediction = model.predict(input_data)
         result = "Prêt accordé." if prediction[0] == 1 else "Prêt non accordé."
         st.write(result)
+
+if __name__ == '__main__':
+    main()
+
 
 
 
