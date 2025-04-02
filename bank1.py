@@ -35,15 +35,15 @@ with st.sidebar:
 
     # Navigation par boutons
     st.subheader("Sections")
-    if st.button("À Propos", use_container_width=True, on_click=set_page_selection, args=('a_propos',)):
+    if st.button("À Propos", use_container_width=True, on_click=set_page_selection, args=('a_propos',), key="btn_a_propos"):
         pass
-    if st.button("Jeu de Données", use_container_width=True, on_click=set_page_selection, args=('jeu_de_donnees',)):
+    if st.button("Jeu de Données", use_container_width=True, on_click=set_page_selection, args=('jeu_de_donnees',), key="btn_jeu_de_donnees"):
         pass
-    if st.button("Analyse Exploratoire", use_container_width=True, on_click=set_page_selection, args=('analyse_exploratoire',)):
+    if st.button("Analyse Exploratoire", use_container_width=True, on_click=set_page_selection, args=('analyse_exploratoire',), key="btn_analyse_exploratoire"):
         pass
-    if st.button("Prédiction", use_container_width=True, on_click=set_page_selection, args=('prediction',)):
+    if st.button("Prédiction", use_container_width=True, on_click=set_page_selection, args=('prediction',), key="btn_prediction"):
         pass
-    if st.button("Conclusion", use_container_width=True, on_click=set_page_selection, args=('conclusion',)):
+    if st.button("Conclusion", use_container_width=True, on_click=set_page_selection, args=('conclusion',), key="btn_conclusion"):
         pass
 
     # Détails du projet
@@ -102,12 +102,12 @@ elif st.session_state.page_selection == 'jeu_de_donnees':
     st.title(" Jeu de Données")
 
     # Afficher les premières lignes du DataFrame
-    if st.checkbox("Afficher le DataFrame"):
-        nb_rows = st.slider("Nombre de lignes à afficher :", min_value=1, max_value=len(df), value=10)
+    if st.checkbox("Afficher le DataFrame", key="chk_afficher_df"):
+        nb_rows = st.slider("Nombre de lignes à afficher :", min_value=1, max_value=len(df), value=10, key="slider_nb_rows")
         st.write(df.head(nb_rows))
 
     # Afficher les statistiques descriptives
-    if st.checkbox("Afficher les statistiques descriptives"):
+    if st.checkbox("Afficher les statistiques descriptives", key="chk_stats_desc"):
         st.write(df.describe())
 
 elif st.session_state.page_selection == 'analyse_exploratoire':
@@ -218,28 +218,29 @@ elif st.session_state.page_selection == 'prediction':
     st.title("🔮 Prédiction")
 
     # Création des champs de saisie
-    age = st.number_input("Âge", min_value=0, max_value=120, value=30)
-    duration = st.number_input("Durée (en secondes)", min_value=0, value=100)
-    campaign = st.number_input("Nombre de contacts lors de cette campagne", min_value=0, value=1)
-    pdays = st.number_input("Nombre de jours depuis le dernier contact", min_value=-1, value=-1)
-    previous = st.number_input("Nombre de contacts précédents", min_value=0, value=0)
-    emp_var_rate = st.number_input("Taux de variation de l'emploi (%)", value=0.0)
-    cons_price_idx = st.number_input("Indice des prix à la consommation", value=92.0)
-    cons_conf_idx = st.number_input("Indice de confiance des consommateurs", value=-50.0)
-    euribor3m = st.number_input("Taux d'Euribor à 3 mois (%)", value=0.0)
-    nr_employed = st.number_input("Nombre d'employés", value=5000)
-    marital_freq_encode = st.number_input("Code marital", min_value=0, value=0)
-    job_freq_encode = st.number_input("Code emploi", min_value=0, value=0)
-    education_freq_encode = st.number_input("Code éducation", min_value=0, value=0)
-    month_freq_encode = st.number_input("Code mois", min_value=0, value=0)
-    day_freq_encode = st.number_input("Code jour", min_value=0, value=0)
-    poutcome_freq_encode = st.number_input("Code résultat de la campagne précédente", min_value=0, value=0)
+    age = st.number_input("Âge", min_value=0, max_value=120, value=30, key="input_age")
+    duration = st.number_input("Durée (en secondes)", min_value=0, value=100, key="input_duration")
+    campaign = st.number_input("Nombre de contacts lors de cette campagne", min_value=0, value=1, key="input_campaign")
+    pdays = st.number_input("Nombre de jours depuis le dernier contact", min_value=-1, value=-1, key="input_pdays")
+    previous = st.number_input("Nombre de contacts précédents", min_value=0, value=0, key="input_previous")
+    emp_var_rate = st.number_input("Taux de variation de l'emploi (%)", value=0.0, key="input_emp_var_rate")
+    cons_price_idx = st.number_input("Indice des prix à la consommation", value=92.0, key="input_cons_price_idx")
+    cons_conf_idx = st.number_input("Indice de confiance des consommateurs", value=-50.0, key="input_cons_conf_idx")
+    euribor3m = st.number_input("Taux d'Euribor à 3 mois (%)", value=0.0, key="input_euribor3m")
+    nr_employed = st.number_input("Nombre d'employés", value=5000, key="input_nr_employed")
+    marital_freq_encode = st.number_input("Code marital", min_value=0, value=0, key="input_marital_freq_encode")
+    job_freq_encode = st.number_input("Code emploi", min_value=0, value=0, key="input_job_freq_encode")
+    education_freq_encode = st.number_input("Code éducation", min_value=0, value=0, key="input_education_freq_encode")
+    month_freq_encode = st.number_input("Code mois", min_value=0, value=0, key="input_month_freq_encode")
+    day_freq_encode = st.number_input("Code jour", min_value=0, value=0, key="input_day_freq_encode")
+    poutcome_freq_encode = st.number_input("Code résultat de la campagne précédente", min_value=0, value=0, key="input_poutcome_freq_encode")
 
     # Bouton pour soumettre le formulaire
-    if st.button("Soumettre"):
+    if st.button("Soumettre", key="btn_soumettre"):
         input_data = np.array([[age, duration, campaign, pdays, previous, emp_var_rate, cons_price_idx, cons_conf_idx, euribor3m, nr_employed, marital_freq_encode, job_freq_encode, education_freq_encode, month_freq_encode, day_freq_encode, poutcome_freq_encode]])
         prediction = model.predict(input_data)
         result = "Prêt accordé." if prediction[0] == 1 else "Prêt non accordé."
         st.write(result)
+
 
    
