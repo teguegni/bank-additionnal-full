@@ -416,7 +416,7 @@ def main():
         st.title("🔮 Prédiction de Souscription Client")
 
         # Charger le modèle et les informations associées
-        model_filename = 'model_classification_bank.pkl'
+        model_filename = 'model_bank_data.pkl'
         try:
             with open(model_filename, 'rb') as model_file:
                 saved_data = pickle.load(model_file)
