@@ -582,6 +582,4 @@ def main():
 
 # --- Reste du code ---
 # if __name__ == '__main__':
-#     # Assurez-vous que 'df' (ou le nom de votre DataFrame global) est chargé avant d'appeler main() si nécessaire
-#     # df = load_data_function() # Exemple
 #     main()
