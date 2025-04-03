@@ -240,76 +240,26 @@ def main():
 
 
     elif st.session_state.page_selection == 'apprentissage_automatique':
-        st.title("⚙️ Apprentissage Automatique")
-        st.write("Préparation des données, entraînement et évaluation du modèle Random Forest.")
+    st.title("⚙️ Apprentissage Automatique")
+    df_ml = df_original.copy()
 
-        # Récupérer le df traité de l'étape précédente ou le recalculer
-        # Pour la simplicité ici, on refait les étapes de prétraitement minimales nécessaires
-        # Assurez-vous que les étapes ici correspondent à celles de 'analyse_exploratoire'
-        df_ml = df_original.copy() # Partir de l'original pour cette section isolée
+    # 1. Liste des colonnes à encoder
+    categorical_cols_freq = ['marital', 'job', 'education', 'month', 'day_of_week', 'poutcome']  # Définition explicite
 
-        # 1. Doublons
-        df_ml = df_ml.drop_duplicates()
+    # 2. Encodage par fréquence
+    st.subheader("Encodage des Variables Catégorielles")
+    df_encoded = df_ml.copy()
+    for column in categorical_cols_freq:  # Pas d'erreur ici
+        fe = df_encoded.groupby(column).size() / len(df_encoded)
+        df_encoded[f'{column}_freq_encode'] = df_encoded[column].map(fe)
 
-        # 2. 'unknown'
-        for column in df_ml.select_dtypes(include='object').columns:
-             if 'unknown' in df_ml[column].unique():
-                mode_value = df_ml[column].mode()[0]
-                if mode_value == 'unknown':
-                   modes = df_ml[column].mode()
-                   if len(modes) > 1: mode_value = modes[1]
-                   else: continue
-                df_ml[column] = df_ml[column].replace('unknown', mode_value)
+    # 3. Encodage Label pour les autres colonnes
+    categorical_cols_label = ['contact', 'housing', 'loan', 'default', 'y']
+    label_encoder = LabelEncoder()
+    for column in categorical_cols_label:
+        df_encoded[column] = label_encoder.fit_transform(df_encoded[column])
 
-        # 3. Outliers (Optionnel, mais présent dans le code original)
-        st.subheader("Traitement des Valeurs Aberrantes (Outliers)")
-        st.write("Remplacement des outliers par les limites basées sur l'IQR (Interquartile Range).")
-        numerics = df_ml.select_dtypes(include=np.number).columns.tolist()
-        if st.checkbox("Activer le remplacement des outliers", key="cb_outliers", value=True):
-            df_ml_outliers = df_ml.copy() # Travailler sur une copie
-            outliers_replaced_count = {col: 0 for col in numerics}
-            for col in numerics:
-                Q1 = df_ml_outliers[col].quantile(0.25)
-                Q3 = df_ml_outliers[col].quantile(0.75)
-                IQR = Q3 - Q1
-                lower_bound = Q1 - 1.5 * IQR
-                upper_bound = Q3 + 1.5 * IQR
-
-                original_values = df_ml_outliers[col].copy()
-                df_ml_outliers[col] = np.where(df_ml_outliers[col] < lower_bound, lower_bound, df_ml_outliers[col])
-                df_ml_outliers[col] = np.where(df_ml_outliers[col] > upper_bound, upper_bound, df_ml_outliers[col])
-
-                # Compter combien de valeurs ont été modifiées
-                outliers_replaced_count[col] = (original_values != df_ml_outliers[col]).sum()
-
-            st.write("Nombre d'outliers remplacés par colonne numérique :")
-            st.write({k: v for k, v in outliers_replaced_count.items() if v > 0})
-            df_ml = df_ml_outliers # Utiliser la version traitée pour la suite
-        else:
-            st.write("Remplacement des outliers désactivé.")
-
-
-        st.subheader("Encodage des Variables Catégorielles")
-        # Encodage par fréquence pour certaines colonnes (comme dans le code original)
-        st.write("Encodage par fréquence pour : 'marital', 'job', 'education', 'month', 'day_of_week', 'poutcome'")
-        df_encoded = df_ml.copy()
-        categorical_cols_freq = ['marital', 'job', 'education', 'month', 'day_of_week', 'poutcome']
-        for column in categorical_cols_freq:
-            fe = df_encoded.groupby(column).size() / len(df_encoded)
-            df_encoded[f'{column}_freq_encode'] = df_encoded[column].map(fe)
-
-        # Encodage Label pour les binaires/ordinales simples (comme dans le code original)
-        st.write("Encodage Label (0/1) pour : 'default', 'housing', 'loan', 'contact'")
-        le = LabelEncoder()
-        categorical_cols_label = ['default', 'housing', 'loan', 'contact']
-        for column in categorical_cols_label:
-            # Gérer le cas où 'yes'/'no' sont présents mais peut-être pas d'autres valeurs
-            try:
-                 df_encoded[column] = le.fit_transform(df_encoded[column])
-            except Exception as e:
-                 st.error(f"Erreur d'encodage pour {column}: {e}")
-                 st.write(f"Valeurs uniques dans {column}: {df_encoded[column].unique()}")
-
+    # ... (suite du code)
 
         # Encodage de la colonne cible 'y'
         st.write("Encodage Label (0/1) pour la variable cible 'y' ('no'=0, 'yes'=1)")
