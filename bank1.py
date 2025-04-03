@@ -239,7 +239,7 @@ def main():
         # st.session_state.df_processed = df_processed # Décommenter si besoin
 
 
-    elif st.session_state.page_selection == 'apprentissage_automatique':
+elif st.session_state.page_selection == 'apprentissage_automatique':
     st.title("⚙️ Apprentissage Automatique")
     df_ml = df_original.copy()
 
