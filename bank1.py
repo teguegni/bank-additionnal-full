@@ -486,71 +486,89 @@ def main():
             submitted = st.form_submit_button("🔮 Lancer la Prédiction")
 
             if submitted:
-                # Créer un DataFrame avec les entrées utilisateur
-                input_dict = {
-                    'age': age, 'job': job, 'marital': marital, 'education': education, 'default': default,
-                    'housing': housing, 'loan': loan, 'contact': contact, 'month': month, 'day_of_week': day_of_week,
-                    'duration': duration, 'campaign': campaign, 'pdays': pdays, 'previous': previous, 'poutcome': poutcome,
-                    'emp.var.rate': emp_var_rate, 'cons.price.idx': cons_price_idx, 'cons.conf.idx': cons_conf_idx,
-                    'euribor3m': euribor3m, 'nr.employed': nr_employed
-                }
-                input_df = pd.DataFrame([input_dict])
+            # --- Création du DataFrame d'entrée ---
+            input_dict = {
+                'age': age, 'job': job, 'marital': marital, 'education': education, 'default': default,
+                'housing': housing, 'loan': loan, 'contact': contact, 'month': month, 'day_of_week': day_of_week,
+                'duration': duration, 'campaign': campaign, 'pdays': pdays, 'previous': previous, 'poutcome': poutcome,
+                'emp.var.rate': emp_var_rate, 'cons.price.idx': cons_price_idx, 'cons.conf.idx': cons_conf_idx,
+                'euribor3m': euribor3m, 'nr.employed': nr_employed
+            }
+            input_df = pd.DataFrame([input_dict])
 
-                # --- Appliquer le MÊME prétraitement que pour l'entraînement ---
-                # 1. Gérer 'unknown' (ici on suppose que les selectbox n'ont pas 'unknown', sinon il faudrait le gérer)
-                # Normalement, les selectbox empêchent l'entrée 'unknown' si elle n'est pas une option valide.
+            # --- Définition des listes de colonnes ICI ---
+            # !!! ASSUREZ-VOUS QUE CES LISTES CORRESPONDENT EXACTEMENT A L'ENTRAINEMENT !!!
+            categorical_cols_freq = ['marital', 'job', 'education', 'month', 'day_of_week', 'poutcome']
+            categorical_cols_label = ['default', 'housing', 'loan', 'contact']
+            # --- FIN de la définition des listes ---
 
-                # 2. Traitement Outliers (si activé pendant l'entraînement - important d'être cohérent)
-                # NOTE : Appliquer le clipping basé sur les bornes calculées sur le *train set* serait l'idéal.
-                # Ici, pour simplifier, on suppose que les valeurs entrées sont raisonnables ou que le clipping n'était pas critique.
-                # Si le clipping était activé et important, il faudrait sauvegarder les bornes (lower/upper) pour chaque variable
-                # numérique et les appliquer ici.
+            # --- Prétraitement du DataFrame d'entrée ---
+            # Encodage par fréquence
+            try:
+                if 'df_original' not in locals() or df_original is None:
+                    # Si df_original n'existe pas, on ne peut pas calculer les fréquences.
+                    # Il faudrait une autre stratégie (ex: charger les fréquences sauvegardées)
+                    st.error("Erreur critique: df_original non disponible pour calculer les fréquences d'encodage.")
+                    st.stop() # Arrêter car l'encodage sera incorrect
 
-                # 3. Encodage
-                # Freq encoding
-                for column in categorical_cols_freq: # Utiliser les mêmes listes que pour l'entraînement
-                    # Charger ou recalculer les fréquences du jeu d'entraînement est le plus sûr
-                    # Ici, on recalcule sur df_original pour la démo, MAIS C'EST MOINS ROBUSTE
-                    # L'idéal: Sauvegarder les mappings de fréquence avec le modèle.
-                    fe = df_original.groupby(column).size() / len(df_original)
-                    input_df[f'{column}_freq_encode'] = input_df[column].map(fe).fillna(0) # fillna(0) pour les catégories inconnues
+                st.write("Application de l'encodage par fréquence...") # Debug
+                for column in categorical_cols_freq:
+                     fe = df_original.groupby(column).size() / len(df_original)
+                     input_df[f'{column}_freq_encode'] = input_df[column].map(fe).fillna(0) # fillna(0) pour catégories inconnues
+                     st.write(f"Colonne: {column}, Valeur encodée: {input_df[f'{column}_freq_encode'].iloc[0]}") # Debug
 
-                # Label encoding
-                le_pred = LabelEncoder() # Recréer un encodeur
+            except Exception as e:
+                 st.error(f"Erreur lors de l'encodage par fréquence : {e}")
+                 st.stop()
+
+            # Encodage Label
+            try:
+                st.write("Application de l'encodage Label...") # Debug
+                le_pred = LabelEncoder()
                 for column in categorical_cols_label:
-                    # Adapter aux valeurs possibles ('yes', 'no', etc.) comme lors de l'entraînement
-                     try:
-                        # Il faut s'assurer que l'encodeur est fitté sur les mêmes valeurs que pendant l'entraînement
-                        # Le plus simple est de le fitter sur les options possibles du df original
-                        le_pred.fit(df_original[column].unique())
-                        input_df[column] = le_pred.transform(input_df[column])
-                     except Exception as e:
-                         st.error(f"Erreur d'encodage prédiction pour {column}: {e}. Valeur entrée: {input_df[column].iloc[0]}")
-                         st.stop()
+                     # Fitter sur les options connues
+                     all_options = df_original[column].unique() if 'df_original' in locals() and df_original is not None else locals().get(f"{column}_options", [])
+                     if not list(all_options):
+                         st.error(f"Options non trouvées pour l'encodage de '{column}'. Utilisation de ['yes', 'no'] par défaut.")
+                         all_options = ['yes', 'no'] # Fallback très basique
 
+                     le_pred.fit(all_options) # Fitter sur les options possibles
+                     input_df[column] = le_pred.transform(input_df[column]) # Transformer la valeur entrée
+                     st.write(f"Colonne: {column}, Valeur encodée: {input_df[column].iloc[0]}") # Debug
 
-                # 4. Supprimer les colonnes originales non nécessaires
-                cols_to_drop_pred = categorical_cols_freq + categorical_cols_label
-                input_df_encoded = input_df.drop(columns=cols_to_drop_pred)
+            except Exception as e:
+                 st.error(f"Erreur lors de l'encodage Label pour {column} : {e}. Valeur entrée: {input_df[column].iloc[0]}")
+                 st.stop()
 
-                # 5. S'assurer que l'ordre des colonnes est le même que celui attendu par le modèle
-                try:
-                    input_final = input_df_encoded[expected_features] # Réorganiser/sélectionner selon l'ordre attendu
-                except KeyError as e:
-                    st.error(f"Erreur: Colonne manquante ou incorrecte pour la prédiction : {e}")
-                    st.error(f"Colonnes attendues: {expected_features}")
-                    st.error(f"Colonnes après encodage: {input_df_encoded.columns.tolist()}")
-                    st.stop()
+            # Supprimer les colonnes originales catégorielles
+            cols_to_drop_pred = categorical_cols_freq + categorical_cols_label
+            input_df_encoded = input_df.drop(columns=cols_to_drop_pred, errors='ignore') # errors='ignore' au cas où une colonne n'existe pas
 
+            # S'assurer que l'ordre/présence des colonnes est correct
+            try:
+                st.write("Alignement des colonnes avec celles attendues par le modèle...") # Debug
+                st.write(f"Colonnes attendues: {expected_features}") # Debug
+                st.write(f"Colonnes présentes avant alignement: {input_df_encoded.columns.tolist()}") # Debug
+                input_final = input_df_encoded.reindex(columns=expected_features, fill_value=0) # Utiliser reindex pour garantir toutes les colonnes attendues
+                st.write(f"Colonnes finales pour la prédiction: {input_final.columns.tolist()}") # Debug
 
-                # --- Prédiction ---
+                # Vérifier les types (parfois nécessaire)
+                # for col in input_final.columns:
+                #     input_final[col] = pd.to_numeric(input_final[col], errors='ignore')
+
+            except Exception as e:
+                 st.error(f"Erreur lors de l'alignement final des colonnes d'entrée : {e}")
+                 st.stop()
+
+            # --- Prédiction ---
+            try:
+                st.write("Lancement de la prédiction...") # Debug
                 prediction_proba = model.predict_proba(input_final)
                 prediction = model.predict(input_final)
+                probability_yes = prediction_proba[0][1]
+                result_label = encoder_y.inverse_transform(prediction)[0]
 
-                probability_yes = prediction_proba[0][1] # Probabilité de la classe '1' (yes)
-                result_label = encoder_y.inverse_transform(prediction)[0] # Revenir à 'yes' ou 'no'
-
-                # --- Afficher le résultat ---
+                # --- Affichage du résultat ---
                 st.subheader("Résultat de la Prédiction")
                 if result_label == 'yes':
                     st.success(f"Le client va probablement souscrire ! (Probabilité: {probability_yes:.2%})")
@@ -558,12 +576,16 @@ def main():
                 else:
                     st.warning(f"Le client ne va probablement pas souscrire. (Probabilité de souscription: {probability_yes:.2%})")
 
-                # Afficher les probabilités détaillées
                 st.write("Probabilités prédites :")
                 st.write(f"- Non ('no'): {prediction_proba[0][0]:.2%}")
                 st.write(f"- Oui ('yes'): {prediction_proba[0][1]:.2%}")
 
+            except Exception as e:
+                st.error(f"Erreur lors de l'exécution de la prédiction : {e}")
+                st.write("Données finales envoyées au modèle :")
+                st.dataframe(input_final) # Afficher les données en cas d'erreur de prédiction
 
-# --- Point d'entrée de l'application ---
-if __name__ == '__main__': # Correction: utiliser __name__ et __main__
-    main()
+
+# --- Reste du code ---
+# if __name__ == '__main__':
+#     main()
