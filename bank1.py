@@ -413,160 +413,154 @@ def main():
 
 
     elif st.session_state.page_selection == 'prediction':
-        st.title("🔮 Prédiction de Souscription Client")
+    st.title("🔮 Prédiction de Souscription Client")
 
-        # Charger le modèle et les informations associées
-        model_filename = 'model_bank_data.pkl'
+    # --- Chargement du modèle depuis GitHub (comme avant) ---
+    MODEL_URL = "https://raw.githubusercontent.com/teguegni/bank-additionnal-full/main/model_classification_bank.pkl"
+    model = None
+    encoder_y = None
+    expected_features = None
+
+    @st.cache_resource
+    def load_model_from_github(url):
+        # ... (code de la fonction load_model_from_github comme avant) ...
         try:
-            with open(model_filename, 'rb') as model_file:
-                saved_data = pickle.load(model_file)
-                model = saved_data['model']
-                encoder_y = saved_data['encoder_y']
-                expected_features = saved_data['features'] # Récupérer les noms des features attendues
-            st.success(f"Modèle '{model_filename}' chargé.")
-        except FileNotFoundError:
-            st.error(f"Le fichier modèle '{model_filename}' n'a pas été trouvé. Veuillez entraîner et sauvegarder le modèle dans la section 'Apprentissage Automatique'.")
-            st.stop()
+            st.info(f"Téléchargement et chargement du modèle depuis {url}...")
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            saved_data = pickle.loads(response.content)
+            model_loaded = saved_data.get('model')
+            encoder_loaded = saved_data.get('encoder_y')
+            features_loaded = saved_data.get('features')
+            if not all([model_loaded, encoder_loaded, features_loaded]):
+                 st.error("Le fichier pickle chargé ne contient pas toutes les clés attendues ('model', 'encoder_y', 'features').")
+                 return None, None, None
+            st.success("Modèle chargé avec succès depuis GitHub.")
+            return model_loaded, encoder_loaded, features_loaded
+        except requests.exceptions.RequestException as e:
+            st.error(f"Erreur réseau lors du téléchargement du modèle : {e}")
+            return None, None, None
+        except pickle.UnpicklingError as e:
+            st.error(f"Erreur lors du désérialisage du fichier pickle : {e}")
+            return None, None, None
         except Exception as e:
-            st.error(f"Erreur lors du chargement du modèle : {e}")
-            st.stop()
+            st.error(f"Une erreur inattendue est survenue lors du chargement du modèle : {e}")
+            return None, None, None
 
-        st.markdown("Entrez les informations du client pour prédire s'il va souscrire à un dépôt à terme.")
+    model, encoder_y, expected_features = load_model_from_github(MODEL_URL)
 
-        # Utiliser st.form pour regrouper les champs et le bouton
-        with st.form(key='prediction_form'):
-            st.subheader("Informations du Client")
-            # Utiliser des colonnes pour mieux organiser
-            col1, col2, col3 = st.columns(3)
+    if model is None or encoder_y is None or expected_features is None:
+        st.error("Impossible de continuer sans le modèle chargé.")
+        st.stop()
 
-            with col1:
-                age = st.number_input("Âge", min_value=18, max_value=100, value=40, step=1, key="input_age")
-                job_options = df_original['job'].unique().tolist() # Utiliser les options du df original
-                job = st.selectbox("Métier", options=job_options, index=job_options.index('admin.') if 'admin.' in job_options else 0 , key="input_job") # Exemple de valeur par défaut
-                marital_options = df_original['marital'].unique().tolist()
-                marital = st.selectbox("Statut Marital", options=marital_options, index=marital_options.index('married') if 'married' in marital_options else 0, key="input_marital")
-                education_options = df_original['education'].unique().tolist()
-                education = st.selectbox("Niveau d'Éducation", options=education_options, index=education_options.index('university.degree') if 'university.degree' in education_options else 0, key="input_education")
-                default_options = df_original['default'].unique().tolist()
-                default = st.selectbox("Défaut de Crédit ?", options=default_options, index=default_options.index('no') if 'no' in default_options else 0, key="input_default")
+    # Essayer de s'assurer que df_original est disponible ici si nécessaire pour les options des selectbox
+    # Cela suppose que df_original est chargé plus tôt dans le script globalement ou dans la session state
+    # Si ce n'est pas le cas, vous devrez gérer le chargement de df_original ici ou utiliser des listes statiques
+    df_original = None # Initialiser
+    try:
+        # Supposons que df est chargé plus tôt et est accessible (sinon, il faut le charger ici)
+        # Remplacer 'df' par la variable réelle contenant le dataframe original si elle a un autre nom
+        if 'df' in locals() or 'df' in globals():
+            # Assurez-vous que 'df' est bien le dataframe *original* non modifié
+            df_original = df.copy() # Utiliser une copie pour être sûr
+        else:
+            # Tentative de rechargement si non trouvé (ajuster le chemin/URL si nécessaire)
+            st.warning("df_original non trouvé, tentative de rechargement...")
+            DATA_URL = 'bank-additional-full.csv' # Ou l'URL GitHub
+            try:
+                 df_original = pd.read_csv(DATA_URL, delimiter=';')
+            except FileNotFoundError:
+                 github_data_url = "https://raw.githubusercontent.com/teguegni/bank-additionnal-full/main/bank-additional-full.csv"
+                 df_original = pd.read_csv(github_data_url, delimiter=';')
+            st.success("df_original rechargé.")
 
-            with col2:
-                housing_options = df_original['housing'].unique().tolist()
-                housing = st.selectbox("Prêt Immobilier ?", options=housing_options, index=housing_options.index('yes') if 'yes' in housing_options else 0, key="input_housing")
-                loan_options = df_original['loan'].unique().tolist()
-                loan = st.selectbox("Prêt Personnel ?", options=loan_options, index=loan_options.index('no') if 'no' in loan_options else 0, key="input_loan")
-                contact_options = df_original['contact'].unique().tolist()
-                contact = st.selectbox("Type de Contact", options=contact_options, index=contact_options.index('cellular') if 'cellular' in contact_options else 0, key="input_contact")
-                month_options = df_original['month'].unique().tolist()
-                month = st.selectbox("Mois du Dernier Contact", options=month_options, index=month_options.index('may') if 'may' in month_options else 0, key="input_month")
-                day_of_week_options = df_original['day_of_week'].unique().tolist()
-                day_of_week = st.selectbox("Jour de la Semaine", options=day_of_week_options, index=day_of_week_options.index('thu') if 'thu' in day_of_week_options else 0, key="input_day_of_week")
+    except Exception as e:
+        st.error(f"Impossible de charger df_original pour les options du formulaire : {e}")
+        # On pourrait continuer avec des listes par défaut, mais l'encodage échouera probablement plus tard
 
-            with col3:
-                 duration = st.number_input("Durée Dernier Contact (secondes)", min_value=0, value=150, step=10, key="input_duration", help="Important: Ce champ influence fortement la prédiction mais n'est connu qu'après l'appel. Pour une prédiction réaliste *avant* l'appel, il devrait être estimé ou non utilisé.")
-                 campaign = st.number_input("Nb Contacts Campagne Actuelle", min_value=1, value=2, step=1, key="input_campaign")
-                 pdays = st.number_input("Jours Depuis Dernier Contact (Préc. Campagne)", min_value=-1, value=999, step=1, key="input_pdays", help="-1 ou 999 signifie jamais contacté précédemment")
-                 previous = st.number_input("Nb Contacts Avant Campagne Actuelle", min_value=0, value=0, step=1, key="input_previous")
-                 poutcome_options = df_original['poutcome'].unique().tolist()
-                 poutcome = st.selectbox("Résultat Préc. Campagne", options=poutcome_options, index=poutcome_options.index('nonexistent') if 'nonexistent' in poutcome_options else 0, key="input_poutcome")
+    st.markdown("Entrez les informations du client...")
 
-            st.subheader("Indicateurs Économiques (valeurs récentes typiques)")
-            col_eco1, col_eco2, col_eco3 = st.columns(3)
-            with col_eco1:
-                emp_var_rate = st.number_input("Taux Variation Emploi", value=-0.1, step=0.1, format="%.1f", key="input_emp_var_rate")
-            with col_eco2:
-                cons_price_idx = st.number_input("Indice Prix Consommation", value=93.2, step=0.1, format="%.1f", key="input_cons_price_idx")
-                cons_conf_idx = st.number_input("Indice Confiance Consommateur", value=-42.0, step=0.1, format="%.1f", key="input_cons_conf_idx")
-            with col_eco3:
-                euribor3m = st.number_input("Taux Euribor 3 Mois", value=1.3, step=0.1, format="%.3f", key="input_euribor3m")
-                nr_employed = st.number_input("Nombre d'Employés (milliers)", value=5100.0, step=10.0, format="%.1f", key="input_nr_employed")
+    with st.form(key='prediction_form'):
+        # ... (définition du formulaire comme avant, utilisant df_original pour les options si possible) ...
+        st.subheader("Informations du Client")
+        col1, col2, col3 = st.columns(3)
+        # --- Champs de saisie (comme avant, mais s'assurer que les listes d'options sont définies) ---
+        # (Exemple pour job)
+        try: job_options = df_original['job'].unique().tolist() if df_original is not None else ['admin.', 'technician', 'blue-collar'] # Fallback
+        except: job_options = ['admin.', 'technician', 'blue-collar'] # Fallback plus sûr
+        job = st.selectbox("Métier", options=job_options, index=0, key="input_job")
+        # ... (Répéter pour marital, education, default, housing, loan, contact, month, day_of_week, poutcome en utilisant df_original si possible avec fallback)
 
+        # ... Autres champs (age, duration, etc.) ...
 
-            # Bouton pour soumettre le formulaire
-            submitted = st.form_submit_button("🔮 Lancer la Prédiction")
+        st.subheader("Indicateurs Économiques")
+        # ... (Champs indicateurs économiques comme avant) ...
 
-            if submitted:
-            # --- Création du DataFrame d'entrée ---
-            input_dict = {
-                'age': age, 'job': job, 'marital': marital, 'education': education, 'default': default,
-                'housing': housing, 'loan': loan, 'contact': contact, 'month': month, 'day_of_week': day_of_week,
-                'duration': duration, 'campaign': campaign, 'pdays': pdays, 'previous': previous, 'poutcome': poutcome,
-                'emp.var.rate': emp_var_rate, 'cons.price.idx': cons_price_idx, 'cons.conf.idx': cons_conf_idx,
-                'euribor3m': euribor3m, 'nr.employed': nr_employed
-            }
+        submitted = st.form_submit_button("🔮 Lancer la Prédiction")
+
+        if submitted:
+            # --- Création du DataFrame d'entrée (comme avant) ---
+            input_dict = { ... } # Remplir avec les valeurs du formulaire
             input_df = pd.DataFrame([input_dict])
 
-            # --- Définition des listes de colonnes ICI ---
-            # !!! ASSUREZ-VOUS QUE CES LISTES CORRESPONDENT EXACTEMENT A L'ENTRAINEMENT !!!
+            # --- Définition des listes de colonnes (comme avant) ---
             categorical_cols_freq = ['marital', 'job', 'education', 'month', 'day_of_week', 'poutcome']
             categorical_cols_label = ['default', 'housing', 'loan', 'contact']
-            # --- FIN de la définition des listes ---
 
-            # --- Prétraitement du DataFrame d'entrée ---
+            # --- Prétraitement ---
             # Encodage par fréquence
             try:
-                if 'df_original' not in locals() or df_original is None:
-                    # Si df_original n'existe pas, on ne peut pas calculer les fréquences.
-                    # Il faudrait une autre stratégie (ex: charger les fréquences sauvegardées)
+                # >>> Vérification critique de df_original <<<
+                if df_original is None:
                     st.error("Erreur critique: df_original non disponible pour calculer les fréquences d'encodage.")
-                    st.stop() # Arrêter car l'encodage sera incorrect
+                    st.stop() # <<<=== AJOUT CRUCIAL DE st.stop()
 
-                st.write("Application de l'encodage par fréquence...") # Debug
+                st.write("Application de l'encodage par fréquence...")
                 for column in categorical_cols_freq:
                      fe = df_original.groupby(column).size() / len(df_original)
-                     input_df[f'{column}_freq_encode'] = input_df[column].map(fe).fillna(0) # fillna(0) pour catégories inconnues
-                     st.write(f"Colonne: {column}, Valeur encodée: {input_df[f'{column}_freq_encode'].iloc[0]}") # Debug
+                     input_df[f'{column}_freq_encode'] = input_df[column].map(fe).fillna(0)
 
             except Exception as e:
                  st.error(f"Erreur lors de l'encodage par fréquence : {e}")
-                 st.stop()
+                 st.stop() # Arrêter si l'encodage échoue
 
             # Encodage Label
             try:
-                st.write("Application de l'encodage Label...") # Debug
+                st.write("Application de l'encodage Label...")
                 le_pred = LabelEncoder()
                 for column in categorical_cols_label:
-                     # Fitter sur les options connues
-                     all_options = df_original[column].unique() if 'df_original' in locals() and df_original is not None else locals().get(f"{column}_options", [])
-                     if not list(all_options):
-                         st.error(f"Options non trouvées pour l'encodage de '{column}'. Utilisation de ['yes', 'no'] par défaut.")
-                         all_options = ['yes', 'no'] # Fallback très basique
-
-                     le_pred.fit(all_options) # Fitter sur les options possibles
-                     input_df[column] = le_pred.transform(input_df[column]) # Transformer la valeur entrée
-                     st.write(f"Colonne: {column}, Valeur encodée: {input_df[column].iloc[0]}") # Debug
+                     all_options = df_original[column].unique() if df_original is not None else locals().get(f"{column}_options", ['yes','no']) # Utiliser df_original ou fallback
+                     if not list(all_options): all_options = ['yes', 'no'] # Fallback
+                     le_pred.fit(all_options)
+                     input_df[column] = le_pred.transform(input_df[column])
 
             except Exception as e:
-                 st.error(f"Erreur lors de l'encodage Label pour {column} : {e}. Valeur entrée: {input_df[column].iloc[0]}")
-                 st.stop()
+                 st.error(f"Erreur lors de l'encodage Label pour {column} : {e}.")
+                 st.stop() # Arrêter si l'encodage échoue
 
-            # Supprimer les colonnes originales catégorielles
+            # Supprimer les colonnes originales catégorielles (comme avant)
             cols_to_drop_pred = categorical_cols_freq + categorical_cols_label
-            input_df_encoded = input_df.drop(columns=cols_to_drop_pred, errors='ignore') # errors='ignore' au cas où une colonne n'existe pas
+            input_df_encoded = input_df.drop(columns=cols_to_drop_pred, errors='ignore')
 
-            # S'assurer que l'ordre/présence des colonnes est correct
+            # Alignement des colonnes (comme avant)
             try:
-                st.write("Alignement des colonnes avec celles attendues par le modèle...") # Debug
-                st.write(f"Colonnes attendues: {expected_features}") # Debug
-                st.write(f"Colonnes présentes avant alignement: {input_df_encoded.columns.tolist()}") # Debug
-                input_final = input_df_encoded.reindex(columns=expected_features, fill_value=0) # Utiliser reindex pour garantir toutes les colonnes attendues
-                st.write(f"Colonnes finales pour la prédiction: {input_final.columns.tolist()}") # Debug
-
-                # Vérifier les types (parfois nécessaire)
-                # for col in input_final.columns:
-                #     input_final[col] = pd.to_numeric(input_final[col], errors='ignore')
+                st.write("Alignement des colonnes...")
+                input_final = input_df_encoded.reindex(columns=expected_features, fill_value=0)
 
             except Exception as e:
                  st.error(f"Erreur lors de l'alignement final des colonnes d'entrée : {e}")
-                 st.stop()
+                 st.stop() # Arrêter si l'alignement échoue
 
             # --- Prédiction ---
+            # Ce bloc ne devrait être atteint que si toutes les étapes précédentes ont réussi
             try:
-                st.write("Lancement de la prédiction...") # Debug
-                prediction_proba = model.predict_proba(input_final)
-                prediction = model.predict(input_final)
-                probability_yes = prediction_proba[0][1]
+                st.write("Lancement de la prédiction...")
+                prediction_proba = model.predict_proba(input_final) # Assignation de prediction_proba
+                prediction = model.predict(input_final) # Assignation de prediction
+
+                # Maintenant, prediction et encoder_y devraient être définis
                 result_label = encoder_y.inverse_transform(prediction)[0]
+                probability_yes = prediction_proba[0][1]
 
                 # --- Affichage du résultat ---
                 st.subheader("Résultat de la Prédiction")
@@ -583,9 +577,11 @@ def main():
             except Exception as e:
                 st.error(f"Erreur lors de l'exécution de la prédiction : {e}")
                 st.write("Données finales envoyées au modèle :")
-                st.dataframe(input_final) # Afficher les données en cas d'erreur de prédiction
+                st.dataframe(input_final)
 
 
 # --- Reste du code ---
 # if __name__ == '__main__':
+#     # Assurez-vous que 'df' (ou le nom de votre DataFrame global) est chargé avant d'appeler main() si nécessaire
+#     # df = load_data_function() # Exemple
 #     main()
