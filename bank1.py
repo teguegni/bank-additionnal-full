@@ -485,83 +485,213 @@ def main():
             # Bouton pour soumettre le formulaire
             submitted = st.form_submit_button("🔮 Lancer la Prédiction")
 
+            elif st.session_state.page_selection == 'prediction':
+        st.title("🔮 Prédiction de Souscription Client")
+
+        # --- Charger le modèle, encodeur_y, expected_features ---
+        model, encoder_y, expected_features = None, None, None
+
+        # Option 1: Charger depuis GitHub
+        if st.toggle("Charger le modèle depuis GitHub", value=True, key="load_github"):
+             # Assurez-vous que la fonction load_model_from_github est définie comme dans le code précédent
+             model, encoder_y, expected_features = load_model_from_github(MODEL_URL_GITHUB)
+        else:
+        # Option 2: Charger depuis le fichier local
+             local_filename = 'model_classification_bank.pkl'
+             try:
+                 with open(local_filename, 'rb') as f:
+                     loaded_data = pickle.load(f)
+                     model = loaded_data.get('model')
+                     encoder_y = loaded_data.get('encoder_y')
+                     expected_features = loaded_data.get('features')
+                     if not all([model, encoder_y, expected_features]):
+                          st.error(f"Le fichier local '{local_filename}' ne contient pas les clés requises.")
+                          model, encoder_y, expected_features = None, None, None
+                     else:
+                          st.success(f"Modèle chargé depuis le fichier local '{local_filename}'.")
+             except FileNotFoundError:
+                 st.error(f"Fichier local '{local_filename}' introuvable. Entraînez le modèle ou chargez depuis GitHub.")
+             except Exception as e:
+                 st.error(f"Erreur lors du chargement depuis le fichier local: {e}")
+
+        # Arrêter si le chargement a échoué
+        if model is None or encoder_y is None or expected_features is None:
+            st.warning("Le modèle n'a pas pu être chargé. Impossible de faire des prédictions.")
+            st.stop()
+
+        # Assurer la disponibilité de df_original pour les options et l'encodage
+        # (Ce bloc peut être simplifié si df_original est garanti d'être chargé au début)
+        df_original_for_prediction = None
+        if 'df_original' in globals() and df_original is not None:
+            df_original_for_prediction = df_original # Utiliser le df global chargé
+        else:
+             st.error("Le DataFrame original n'a pas pu être chargé initialement. L'encodage échouera.")
+             st.stop()
+
+
+        # --- Formulaire de saisie utilisateur ---
+        st.markdown("Entrez les informations du client :")
+        with st.form(key='prediction_form'):
+            # ... (Définition des colonnes et des champs de formulaire comme dans le code précédent)
+            st.subheader("Infos Client")
+            col1, col2 = st.columns(2)
+            with col1:
+                age = st.number_input("Âge", 18, 100, 40, 1, key="pred_age")
+                job = st.selectbox("Métier", options=df_original_for_prediction['job'].unique(), key="pred_job")
+                marital = st.selectbox("Statut Marital", options=df_original_for_prediction['marital'].unique(), key="pred_marital")
+                education = st.selectbox("Éducation", options=df_original_for_prediction['education'].unique(), key="pred_education")
+                default = st.selectbox("Défaut Crédit?", options=df_original_for_prediction['default'].unique(), format_func=lambda x: 'Oui' if x=='yes' else ('Non' if x=='no' else x) , key="pred_default")
+                housing = st.selectbox("Prêt Immo?", options=df_original_for_prediction['housing'].unique(), format_func=lambda x: 'Oui' if x=='yes' else ('Non' if x=='no' else x), key="pred_housing")
+                loan = st.selectbox("Prêt Perso?", options=df_original_for_prediction['loan'].unique(), format_func=lambda x: 'Oui' if x=='yes' else ('Non' if x=='no' else x), key="pred_loan")
+
+            with col2:
+                contact = st.selectbox("Type Contact", options=df_original_for_prediction['contact'].unique(), key="pred_contact")
+                month = st.selectbox("Mois Dernier Contact", options=df_original_for_prediction['month'].unique(), key="pred_month")
+                day_of_week = st.selectbox("Jour Semaine Dernier Contact", options=df_original_for_prediction['day_of_week'].unique(), key="pred_day")
+                duration = st.number_input("Durée Dernier Contact (sec)", 0, 6000, 120, 10, key="pred_duration", help="Attention: Valeur connue après l'appel.")
+                campaign = st.number_input("Nb Contacts Campagne", 1, 100, 2, 1, key="pred_campaign")
+                pdays = st.number_input("Jours Depuis Dernier Contact (Préc.)", -1, 999, 999, 1, key="pred_pdays", help="-1 ou 999 = Jamais contacté")
+                previous = st.number_input("Nb Contacts Avant Campagne", 0, 100, 0, 1, key="pred_previous")
+                poutcome = st.selectbox("Résultat Préc. Campagne", options=df_original_for_prediction['poutcome'].unique(), key="pred_poutcome")
+
+            st.subheader("Indicateurs Économiques")
+            col_eco1, col_eco2, col_eco3 = st.columns(3)
+            with col_eco1: emp_var_rate = st.number_input("Taux Var. Emploi", -5.0, 5.0, 1.1, 0.1, format="%.1f", key="pred_emp_var")
+            with col_eco2: cons_price_idx = st.number_input("Indice Prix Conso.", 90.0, 95.0, 93.9, 0.1, format="%.1f", key="pred_cons_price")
+            with col_eco2: cons_conf_idx = st.number_input("Indice Conf. Conso.", -55.0, -25.0, -40.0, 0.1, format="%.1f", key="pred_cons_conf")
+            with col_eco3: euribor3m = st.number_input("Taux Euribor 3 Mois", 0.5, 5.5, 4.8, 0.1, format="%.3f", key="pred_euribor")
+            with col_eco3: nr_employed = st.number_input("Nb Employés (milliers)", 4800.0, 5300.0, 5190.0, 10.0, format="%.1f", key="pred_nr_emp")
+
+            submitted = st.form_submit_button("🔮 Obtenir la Prédiction")
+
             if submitted:
-                # Créer un DataFrame avec les entrées utilisateur
-                input_dict = {
+                # --- Créer DataFrame pour l'entrée utilisateur ---
+                input_data = {
                     'age': age, 'job': job, 'marital': marital, 'education': education, 'default': default,
                     'housing': housing, 'loan': loan, 'contact': contact, 'month': month, 'day_of_week': day_of_week,
                     'duration': duration, 'campaign': campaign, 'pdays': pdays, 'previous': previous, 'poutcome': poutcome,
                     'emp.var.rate': emp_var_rate, 'cons.price.idx': cons_price_idx, 'cons.conf.idx': cons_conf_idx,
                     'euribor3m': euribor3m, 'nr.employed': nr_employed
                 }
-                input_df = pd.DataFrame([input_dict])
+                input_df = pd.DataFrame([input_data])
+                st.write("Données saisies :", input_df) # Debug
 
-                # --- Appliquer le MÊME prétraitement que pour l'entraînement ---
-                # 1. Gérer 'unknown' (ici on suppose que les selectbox n'ont pas 'unknown', sinon il faudrait le gérer)
-                # Normalement, les selectbox empêchent l'entrée 'unknown' si elle n'est pas une option valide.
+                # --- Appliquer le PRÉTRAITEMENT EXACTEMENT comme à l'entraînement ---
+                df_processed_input = input_df.copy()
 
-                # 2. Traitement Outliers (si activé pendant l'entraînement - important d'être cohérent)
-                # NOTE : Appliquer le clipping basé sur les bornes calculées sur le *train set* serait l'idéal.
-                # Ici, pour simplifier, on suppose que les valeurs entrées sont raisonnables ou que le clipping n'était pas critique.
-                # Si le clipping était activé et important, il faudrait sauvegarder les bornes (lower/upper) pour chaque variable
-                # numérique et les appliquer ici.
+                 # --- >>> AJOUT/CORRECTION : Définition des listes ICI <<< ---
+                categorical_cols_freq = ['marital', 'job', 'education', 'month', 'day_of_week', 'poutcome']
+                categorical_cols_label = ['default', 'housing', 'loan', 'contact']
+                # --- >>> FIN DE L'AJOUT/CORRECTION <<< ---
 
-                # 3. Encodage
-                # Freq encoding
-                for column in categorical_cols_freq: # Utiliser les mêmes listes que pour l'entraînement
-                    # Charger ou recalculer les fréquences du jeu d'entraînement est le plus sûr
-                    # Ici, on recalcule sur df_original pour la démo, MAIS C'EST MOINS ROBUSTE
-                    # L'idéal: Sauvegarder les mappings de fréquence avec le modèle.
-                    fe = df_original.groupby(column).size() / len(df_original)
-                    input_df[f'{column}_freq_encode'] = input_df[column].map(fe).fillna(0) # fillna(0) pour les catégories inconnues
-
-                # Label encoding
-                le_pred = LabelEncoder() # Recréer un encodeur
-                for column in categorical_cols_label:
-                    # Adapter aux valeurs possibles ('yes', 'no', etc.) comme lors de l'entraînement
-                     try:
-                        # Il faut s'assurer que l'encodeur est fitté sur les mêmes valeurs que pendant l'entraînement
-                        # Le plus simple est de le fitter sur les options possibles du df original
-                        le_pred.fit(df_original[column].unique())
-                        input_df[column] = le_pred.transform(input_df[column])
-                     except Exception as e:
-                         st.error(f"Erreur d'encodage prédiction pour {column}: {e}. Valeur entrée: {input_df[column].iloc[0]}")
-                         st.stop()
-
-
-                # 4. Supprimer les colonnes originales non nécessaires
-                cols_to_drop_pred = categorical_cols_freq + categorical_cols_label
-                input_df_encoded = input_df.drop(columns=cols_to_drop_pred)
-
-                # 5. S'assurer que l'ordre des colonnes est le même que celui attendu par le modèle
+                # 1. Encodage par fréquence
                 try:
-                    input_final = input_df_encoded[expected_features] # Réorganiser/sélectionner selon l'ordre attendu
-                except KeyError as e:
-                    st.error(f"Erreur: Colonne manquante ou incorrecte pour la prédiction : {e}")
-                    st.error(f"Colonnes attendues: {expected_features}")
-                    st.error(f"Colonnes après encodage: {input_df_encoded.columns.tolist()}")
+                    # Utiliser df_original_for_prediction qui a été vérifié plus haut
+                    if df_original_for_prediction is None: raise ValueError("df_original_for_prediction n'est pas disponible.")
+                    st.write("Application de l'encodage par fréquence...") # Debug
+                    for col in categorical_cols_freq: # Utilise la liste définie ci-dessus
+                        freq_map = df_original_for_prediction.groupby(col).size() / len(df_original_for_prediction)
+                        df_processed_input[f'{col}_freq_encode'] = df_processed_input[col].map(freq_map).fillna(0)
+                        st.write(f"FreqEnc - Colonne: {col}, Valeur encodée: {df_processed_input[f'{col}_freq_encode'].iloc[0]}") # Debug
+                except Exception as e:
+                    st.error(f"Erreur pendant l'encodage par fréquence: {e}")
                     st.stop()
 
+                # 2. Encodage Label
+                try:
+                    if df_original_for_prediction is None: raise ValueError("df_original_for_prediction n'est pas disponible.")
+                    st.write("Application de l'encodage Label...") # Debug
+                    for col in categorical_cols_label: # Utilise la liste définie ci-dessus
+                        le = LabelEncoder()
+                        le.fit(df_original_for_prediction[col].unique()) # Fit sur les valeurs possibles
+                        df_processed_input[col] = le.transform(df_processed_input[col])
+                        st.write(f"LabelEnc - Colonne: {col}, Valeur encodée: {df_processed_input[col].iloc[0]}") # Debug
+                except Exception as e:
+                    st.error(f"Erreur pendant l'encodage Label pour {col}: {e}")
+                    st.stop()
 
-                # --- Prédiction ---
-                prediction_proba = model.predict_proba(input_final)
-                prediction = model.predict(input_final)
+                # 3. Supprimer les colonnes catégorielles originales
+                cols_to_drop_input = categorical_cols_freq + categorical_cols_label
+                df_processed_input = df_processed_input.drop(columns=cols_to_drop_input, errors='ignore')
 
-                probability_yes = prediction_proba[0][1] # Probabilité de la classe '1' (yes)
-                result_label = encoder_y.inverse_transform(prediction)[0] # Revenir à 'yes' ou 'no'
+                # 4. S'assurer que les colonnes sont dans le bon ordre et complètes
+                try:
+                    st.write("Alignement des colonnes finales...") # Debug
+                    input_final = df_processed_input.reindex(columns=expected_features, fill_value=0)
+                    st.write("Données après prétraitement (prêtes pour modèle) :", input_final) # Debug
+                except Exception as e:
+                    st.error(f"Erreur lors de l'alignement des colonnes finales: {e}")
+                    st.stop()
 
-                # --- Afficher le résultat ---
-                st.subheader("Résultat de la Prédiction")
-                if result_label == 'yes':
-                    st.success(f"Le client va probablement souscrire ! (Probabilité: {probability_yes:.2%})")
-                    st.balloons()
-                else:
-                    st.warning(f"Le client ne va probablement pas souscrire. (Probabilité de souscription: {probability_yes:.2%})")
+                # --- Faire la Prédiction ---
+                try:
+                    st.write("Lancement de la prédiction sur le modèle...") # Debug
+                    prediction_proba = model.predict_proba(input_final)
+                    prediction = model.predict(input_final)
+                    probability_yes = prediction_proba[0][1]
+                    result_label = encoder_y.inverse_transform(prediction)[0] # Utiliser l'encodeur chargé
 
-                # Afficher les probabilités détaillées
-                st.write("Probabilités prédites :")
-                st.write(f"- Non ('no'): {prediction_proba[0][0]:.2%}")
-                st.write(f"- Oui ('yes'): {prediction_proba[0][1]:.2%}")
+                    # --- Afficher le résultat ---
+                    st.subheader("Résultat")
+                    # ... (affichage succès/warning comme avant) ...
+                    if result_label == 'yes':
+                        st.success(f"✅ Prédiction : Souscription Probable (Confiance: {probability_yes:.1%})")
+                        st.balloons()
+                    else:
+                        st.warning(f"❌ Prédiction : Souscription Improbable (Confiance souscription: {probability_yes:.1%})")
+
+                except Exception as e:
+                    st.error(f"Erreur lors de l'exécution de la prédiction sur le modèle : {e}")
+                    st.dataframe(input_final) # Afficher les données qui ont causé l'erreur
+
+# --- Exécution de l'application ---
+if __name__ == '__main__':
+    main()
+
+# --- Fonctions utilitaires (si non définies ailleurs) ---
+# Assurez-vous que load_model_from_github est définie
+@st.cache_resource
+def load_model_from_github(url):
+    """Charge un objet pickle (modèle, etc.) depuis une URL brute GitHub."""
+    try:
+        st.info(f"Tentative de chargement du modèle depuis GitHub ({url})...")
+        response = requests.get(url, timeout=30)
+        response.raise_for_status() # Vérifie les erreurs HTTP
+        model_data = pickle.load(io.BytesIO(response.content))
+        required_keys = ['model', 'encoder_y', 'features']
+        if not all(key in model_data for key in required_keys):
+            st.error(f"Le fichier pickle chargé ne contient pas les clés requises: {required_keys}")
+            return None, None, None
+        st.success("Modèle, encodeur cible et liste des features chargés avec succès depuis GitHub.")
+        return model_data['model'], model_data['encoder_y'], model_data['features']
+    except requests.exceptions.RequestException as e:
+        st.error(f"Erreur réseau lors du téléchargement du modèle : {e}")
+        return None, None, None
+    except pickle.UnpicklingError as e:
+        st.error(f"Erreur lors du désérialisage du fichier pickle : {e}")
+        return None, None, None
+    except Exception as e:
+        st.error(f"Une erreur inattendue est survenue lors du chargement du modèle : {e}")
+        return None, None, None
+
+# Répétez le code pour add_bg_from_url si nécessaire ou assurez-vous qu'il est défini avant l'appel
+def add_bg_from_url(url):
+    """Ajoute une image d'arrière-plan à partir d'une URL brute GitHub."""
+    st.markdown(
+         f"""
+         <style>
+         .stApp {{
+             background-image: url("{url}");
+             background-attachment: fixed;
+             background-size: cover;
+             background-repeat: no-repeat;
+         }}
+         </style>
+         """,
+         unsafe_allow_html=True
+     )
+image_url_raw = "https://raw.githubusercontent.com/teguegni/bank-additionnal-full/main/image1.jpg" # URL Corrigée
+add_bg_from_url(image_url_raw) # Appel de la fonction
 
 
 # --- Point d'entrée de l'application ---
